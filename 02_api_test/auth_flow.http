@@ -1,0 +1,29 @@
+@baseUrl = http://127.0.0.1:8080
+@username = test1
+@password = 123456
+
+### Health
+GET {{baseUrl}}/health
+
+### Register
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Me
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{login.response.body.data.token}}
