@@ -1,0 +1,50 @@
+name: check & build & test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: EmbarkStudios/cargo-deny-action@v2
+      with:
+        rust-version: "1.94"
+
+  cargo-fmt-clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Update the Rust toolchain
+      run: rustup default 1.94 && rustup component add rustfmt && rustup component add clippy && rustc --version
+    - name: Cargo formatting check
+      run: cargo fmt --all -- --check
+    - name: Cargo clippy check
+      run: cargo clippy --all-targets --all-features
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and run the docker services
+      run: docker compose up -d
+    - name: Update the Rust toolchain
+      run: rustup default 1.94 && rustc --version
+    - name: Run tests
+      run: cargo test --verbose
+    
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Update the Rust toolchain
+      run: rustup default 1.94 && rustc --version
+    - name: Build
+      run: cargo build --verbose
