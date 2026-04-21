@@ -1,0 +1,27 @@
+### sign up a user
+POST http://localhost:3009/auth/signup
+Content-Type: application/json
+
+{
+	"username": "jo",
+	"password": "123456"
+}
+
+
+### sign up a user
+POST http://localhost:3009/auth/signin
+Content-Type: application/json
+
+{
+	"username": "joy4",
+	"password": "123456"
+}
+
+### sign up with admin
+POST http://localhost:3009/auth/signin
+Content-Type: application/json
+
+{
+	"username": "superman",
+	"password": "supermannofly"
+}

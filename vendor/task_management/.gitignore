@@ -1,0 +1,29 @@
+# TASK_MANAGEMENT root .gitignore
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
