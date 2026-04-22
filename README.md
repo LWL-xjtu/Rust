@@ -1,27 +1,85 @@
-# 基于 Rust 的校园协作活动管理系统后端（初步框架）
+﻿# 基于 Rust 的校园协作活动管理系统后端
 
-本项目是课程阶段（第 3-4 周）可运行的后端骨架，已打通认证主线：
+这是课程项目后端仓库，当前已完成第 3-4 周主线，并进入“任务布置与分工执行”阶段。
+
+## 当前阶段结论
+
+- 认证主线已跑通：`register -> login -> JWT -> /me`
+- 工程骨架已稳定：分层结构 + 统一错误 + 统一响应
+- 参考仓库整合已完成：5 个 Axum/Postgres 仓库已纳入项目资产
+- 项目推进状态：已完成任务拆解并进入成员分工执行
+
+## 已完成功能（可演示）
 
 - `GET /health`
+- `GET /health/live`
+- `GET /health/ready`（含数据库 readiness 检查）
 - `POST /api/auth/register`
 - `POST /api/auth/login`
-- `GET /api/users/me`（Bearer Token）
+- `GET /api/users/me`
 
-技术栈：Rust + Axum + Tokio + SQLx + PostgreSQL + JWT + Argon2。
+统一响应格式：
 
-## 1. 环境准备
-
-1. 安装 Rust（建议 stable）
-2. 安装 PostgreSQL 并创建数据库，例如 `campus_collab`
-3. 安装 `sqlx-cli`（可选，用于手动 migration 管理）：
-
-```bash
-cargo install sqlx-cli --no-default-features --features rustls,postgres
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {}
+}
 ```
 
-## 2. 配置环境变量
+## 五仓库合并这一步做了什么
 
-复制 `.env.example` 为 `.env` 并修改：
+### 1) 源码整合（完整拉入本仓库）
+
+已将以下参考仓库完整引入到 `vendor/`：
+
+- `vendor/axum-rest-api-sample`
+- `vendor/rust-axum-postgres`
+- `vendor/rust-axum-postgres-api`
+- `vendor/axum-template`
+- `vendor/task_management`
+
+### 2) 主工程吸收了可运行能力（非仅存链接）
+
+- 引入 CORS 中间件
+  - 文件：`src/routes/mod.rs`、`Cargo.toml`
+- 增加健康检查增强接口
+  - `GET /health/live`
+  - `GET /health/ready`
+  - 文件：`src/handlers/health_handler.rs`、`src/routes/health_routes.rs`
+- 编译检查通过：`cargo check`
+
+### 3) 形成可交接整合包
+
+目录：`integration_from_5_repos/`
+
+- `README.md`：整合总说明
+- `docs/repo_goal_mapping.md`：项目目标与仓库能力映射
+- `docs/adoption_backlog.md`：分阶段落地清单
+- `rest_client/core_flow.http`：联调请求样例
+- `scripts/sync_vendor_repos.ps1`：一键同步脚本
+
+## 当前进展：已到任务布置阶段
+
+当前已完成任务拆解和分工，进入并行开发执行：
+
+1. 成员一：架构整合与主分支质量把关
+2. 成员二：认证与权限（JWT/RBAC 细化）
+3. 成员三：核心业务模块开发（活动/场地/设备/任务）
+4. 成员四：接口联调、测试记录、文档整理
+
+## 下一阶段（Week 5-7）重点
+
+1. Week 5：活动管理 + 场地预约
+2. Week 6：设备借用管理（申请/审批/借出/归还）
+3. Week 7：任务分工与过程留痕（task_logs/operation_logs）
+
+## 本地运行
+
+### 1) 配置环境变量
+
+复制示例文件：
 
 ```bash
 cp .env.example .env
@@ -41,78 +99,53 @@ Copy-Item .env.example .env
 - `APP_PORT`
 - `RUST_LOG`
 
-## 3. 执行 migration
-
-方案 A（推荐）：项目启动时会自动执行 `migrations/` 下脚本，无需手动执行。
-
-方案 B（手动执行）：
-
-```bash
-sqlx database create
-sqlx migrate run
-```
-
-## 4. 启动项目
+### 2) 启动
 
 ```bash
 cargo run
 ```
 
-默认监听：`http://127.0.0.1:8080`
+默认地址：`http://127.0.0.1:8080`
 
-## 5. 接口测试
+### 3) 快速联调
 
-### 健康检查
+可直接使用：
 
-```bash
-curl http://127.0.0.1:8080/health
-```
+- `integration_from_5_repos/rest_client/core_flow.http`
+- `extras_for_team/02_auth_api_test/auth_flow.ps1`
 
-### 注册
-
-```bash
-curl -X POST http://127.0.0.1:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test1","password":"123456"}'
-```
-
-### 登录
-
-```bash
-curl -X POST http://127.0.0.1:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test1","password":"123456"}'
-```
-
-返回中 `data.token` 即 JWT。
-
-### 获取当前用户 `/me`
-
-```bash
-curl http://127.0.0.1:8080/api/users/me \
-  -H "Authorization: Bearer <your_token>"
-```
-
-## 6. 目录结构（核心）
+## 仓库结构（核心）
 
 ```text
 src/
-  config/       # 环境配置加载
-  routes/       # 路由注册
-  handlers/     # HTTP 处理层
-  services/     # 业务逻辑层
-  models/       # 数据库模型
-  dto/          # 请求/响应 DTO
-  middleware/   # JWT 提取器
-  utils/        # JWT/密码工具
-  errors/       # 统一错误处理
-  state.rs      # 全局共享状态
-  main.rs       # 入口
-migrations/     # SQLx migration
+  config/
+  routes/
+  handlers/
+  services/
+  models/
+  dto/
+  middleware/
+  utils/
+  errors/
+  state.rs
+  main.rs
+migrations/
+vendor/
+integration_from_5_repos/
 ```
 
-## 7. 后续扩展建议
+## 技术栈
 
-- 新增 `activity`、`venue`、`equipment`、`task` 模块并沿用同样分层。
-- 在 JWT claims 中扩展权限字段，接入 RBAC。
-- 增加集成测试与接口文档（OpenAPI）。
+- Rust
+- Axum
+- Tokio
+- SQLx
+- PostgreSQL
+- Serde
+- dotenvy
+- tracing / tracing-subscriber
+- jsonwebtoken
+- argon2
+- uuid
+- chrono
+- thiserror
