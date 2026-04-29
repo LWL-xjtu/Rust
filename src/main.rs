@@ -1,4 +1,4 @@
-mod config;
+﻿mod config;
 mod dto;
 mod errors;
 mod handlers;
@@ -34,7 +34,7 @@ async fn main() {
         .expect("failed to run migrations");
 
     let app_state = AppState::new(pool, config.jwt.clone());
-    let app = routes::create_router().with_state(app_state);
+    let app = routes::create_router(config.cors.frontend_origin.clone()).with_state(app_state);
     let addr = SocketAddr::new(
         config.app.host.parse().expect("invalid APP_HOST"),
         config.app.port,
@@ -60,3 +60,5 @@ fn init_tracing() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 }
+
+

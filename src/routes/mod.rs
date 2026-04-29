@@ -1,4 +1,4 @@
-pub mod activity_routes;
+﻿pub mod activity_routes;
 pub mod auth_routes;
 pub mod device_routes;
 pub mod health_routes;
@@ -8,6 +8,7 @@ pub mod task_routes;
 pub mod user_routes;
 pub mod venue_routes;
 
+use axum::http::HeaderValue;
 use axum::Router;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -16,11 +17,23 @@ use tower_http::{
 
 use crate::state::AppState;
 
-pub fn create_router() -> Router<AppState> {
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+pub fn create_router(frontend_origin: Option<String>) -> Router<AppState> {
+    let cors = match frontend_origin.filter(|s| !s.trim().is_empty()) {
+        Some(origin) => match HeaderValue::from_str(&origin) {
+            Ok(value) => CorsLayer::new()
+                .allow_origin(value)
+                .allow_methods(Any)
+                .allow_headers(Any),
+            Err(_) => CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        },
+        None => CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any),
+    };
 
     Router::new()
         .merge(health_routes::router())

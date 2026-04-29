@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Segoe UI, sans-serif; background: #f4f6fa; color: #1f2a37; }
+a { color: #0b65c6; text-decoration: none; }
+.navbar { height: 56px; background: #0b65c6; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.navbar nav a { color:#fff; margin-right: 10px; }
+.app-shell .body { display:flex; }
+.sidebar { width: 180px; background: #fff; border-right: 1px solid #e3e7ef; min-height: calc(100vh - 56px); padding: 12px; display:flex; flex-direction:column; gap:8px; }
+.content { flex:1; padding: 16px; }
+.auth-page { max-width: 420px; margin: 64px auto; background:#fff; border:1px solid #e5e8ef; padding:16px; border-radius:8px; }
+form { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+input, button { padding: 8px 10px; border-radius:6px; border:1px solid #c9d2e3; }
+button { background:#0b65c6; color:#fff; border:none; cursor:pointer; }
+.table { width:100%; border-collapse: collapse; background:#fff; }
+.table th, .table td { border:1px solid #e5e8ef; padding:8px; }
+.cards { display:grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:8px 0; }
+.cards div { background:#fff; border:1px solid #d9e1ee; padding:10px; border-radius:8px; }
+.error { background:#ffe8e8; color:#a10000; padding:8px; border:1px solid #ffcccc; border-radius:6px; margin:8px 0; }
+.loading { padding: 20px; }

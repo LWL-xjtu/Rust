@@ -7,6 +7,7 @@ pub struct AppConfig {
     pub app: AppSection,
     pub database: DatabaseSection,
     pub jwt: JwtSection,
+    pub cors: CorsSection,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,11 @@ pub struct JwtSection {
     pub expires_in_hours: i64,
 }
 
+#[derive(Debug, Clone)]
+pub struct CorsSection {
+    pub frontend_origin: Option<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("missing env var: {0}")]
@@ -45,6 +51,9 @@ impl AppConfig {
         let jwt_secret = env::var("JWT_SECRET")
             .map_err(|_| ConfigError::MissingVar("JWT_SECRET".to_string()))?;
         let expires_in_hours = parse_env_or_default("JWT_EXPIRES_IN_HOURS", 24_i64)?;
+        let frontend_origin = env::var("FRONTEND_ORIGIN")
+            .ok()
+            .filter(|v| !v.trim().is_empty());
 
         Ok(Self {
             app: AppSection { host, port },
@@ -56,6 +65,7 @@ impl AppConfig {
                 secret: jwt_secret,
                 expires_in_hours,
             },
+            cors: CorsSection { frontend_origin },
         })
     }
 }
