@@ -1,3 +1,9 @@
+pub mod activity_handler;
 pub mod auth_handler;
+pub mod device_handler;
 pub mod health_handler;
+pub mod operation_log_handler;
+pub mod stats_handler;
+pub mod task_handler;
 pub mod user_handler;
+pub mod venue_handler;

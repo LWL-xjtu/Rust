@@ -1,0 +1,65 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>校园协作活动管理系统 - 项目展示</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>基于 Rust 的校园协作活动全流程管理系统</h1>
+    <p>课程项目展示页：认证、活动、场地、设备、任务、日志、统计一体化后端</p>
+    <div class="tags">
+      <span>Rust</span><span>Axum</span><span>Tokio</span><span>SQLx</span><span>PostgreSQL</span><span>JWT</span><span>Argon2</span><span>GitHub Pages</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>功能模块</h2>
+      <div class="grid" id="moduleGrid"></div>
+    </section>
+
+    <section>
+      <h2>进度时间线（第1-7周）</h2>
+      <ul class="timeline">
+        <li><b>第1周</b> 需求分析与资料调研</li>
+        <li><b>第2周</b> 总体设计与数据库建模</li>
+        <li><b>第3周</b> 项目环境搭建</li>
+        <li><b>第4周</b> 用户认证与权限模块</li>
+        <li><b>第5周</b> 协作活动与场地预约模块</li>
+        <li><b>第6周</b> 设备借用管理模块</li>
+        <li><b>第7周</b> 小组分工与进度留痕模块</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>API 可交互列表</h2>
+      <div class="filters" id="filters"></div>
+      <div id="apiList"></div>
+    </section>
+
+    <section>
+      <h2>分层架构</h2>
+      <div class="layers">
+        <div>handlers</div><div>services</div><div>repositories / SQLx</div><div>PostgreSQL</div><div>middleware</div><div>utils</div><div>errors</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>演示说明</h2>
+      <ol>
+        <li>配置 <code>.env</code>（DATABASE_URL/JWT_SECRET 等）</li>
+        <li>运行 <code>cargo run</code></li>
+        <li>按接口顺序演示：注册/登录 → 活动 → 场地预约 → 设备借用 → 任务 → 统计/日志</li>
+      </ol>
+      <p>测试账号：可使用 <code>POST /api/auth/register</code> 新建账号。</p>
+      <p>仓库地址：<a href="https://github.com/LWL-xjtu/Rust" target="_blank">https://github.com/LWL-xjtu/Rust</a></p>
+      <p>Swagger/OpenAPI：<em>后续可接入（占位）</em></p>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

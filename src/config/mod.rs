@@ -42,8 +42,8 @@ impl AppConfig {
         let database_url = env::var("DATABASE_URL")
             .map_err(|_| ConfigError::MissingVar("DATABASE_URL".to_string()))?;
         let max_connections = parse_env_or_default("DATABASE_MAX_CONNECTIONS", 10_u32)?;
-        let jwt_secret =
-            env::var("JWT_SECRET").map_err(|_| ConfigError::MissingVar("JWT_SECRET".to_string()))?;
+        let jwt_secret = env::var("JWT_SECRET")
+            .map_err(|_| ConfigError::MissingVar("JWT_SECRET".to_string()))?;
         let expires_in_hours = parse_env_or_default("JWT_EXPIRES_IN_HOURS", 24_i64)?;
 
         Ok(Self {

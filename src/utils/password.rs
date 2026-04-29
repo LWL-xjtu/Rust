@@ -8,7 +8,9 @@ use crate::errors::AppError;
 pub fn hash_password(password: &str) -> Result<String, AppError> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    let hashed = argon2.hash_password(password.as_bytes(), &salt)?.to_string();
+    let hashed = argon2
+        .hash_password(password.as_bytes(), &salt)?
+        .to_string();
     Ok(hashed)
 }
 

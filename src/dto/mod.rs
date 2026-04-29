@@ -1,3 +1,9 @@
+pub mod activity;
 pub mod auth;
 pub mod common;
+pub mod device;
+pub mod operation_log;
+pub mod stats;
+pub mod task;
 pub mod user;
+pub mod venue;

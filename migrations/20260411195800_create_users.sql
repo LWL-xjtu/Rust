@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+﻿CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     username VARCHAR(64) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -20,3 +20,4 @@ CREATE TRIGGER users_set_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
+

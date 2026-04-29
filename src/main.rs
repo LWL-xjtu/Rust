@@ -35,7 +35,10 @@ async fn main() {
 
     let app_state = AppState::new(pool, config.jwt.clone());
     let app = routes::create_router().with_state(app_state);
-    let addr = SocketAddr::new(config.app.host.parse().expect("invalid APP_HOST"), config.app.port);
+    let addr = SocketAddr::new(
+        config.app.host.parse().expect("invalid APP_HOST"),
+        config.app.port,
+    );
 
     tracing::info!("server listening on http://{}", addr);
 

@@ -1,8 +1,8 @@
+use async_trait::async_trait;
 use axum::{
     extract::{FromRequestParts, State},
     http::{header, request::Parts},
 };
-use async_trait::async_trait;
 
 use crate::{
     errors::AppError, models::user::User, services::user_service, state::AppState, utils::jwt,

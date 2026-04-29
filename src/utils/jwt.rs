@@ -14,7 +14,11 @@ pub struct Claims {
     pub exp: usize,
 }
 
-pub fn generate_token(user: &User, secret: &str, expires_in_hours: i64) -> Result<String, AppError> {
+pub fn generate_token(
+    user: &User,
+    secret: &str,
+    expires_in_hours: i64,
+) -> Result<String, AppError> {
     let now = Utc::now();
     let exp = now + Duration::hours(expires_in_hours);
 
