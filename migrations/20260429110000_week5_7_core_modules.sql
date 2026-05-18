@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS activities (
+CREATE TABLE IF NOT EXISTS activities (
     id UUID PRIMARY KEY,
     title VARCHAR(128) NOT NULL,
     description TEXT,
