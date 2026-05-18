@@ -1,20 +1,52 @@
 ﻿import { useEffect, useState } from "react";
+import { activitiesApi } from "../api/activities";
 import { logsApi } from "../api/logs";
+import ApiError from "../components/ApiError";
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
   const [activityId, setActivityId] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => { logsApi.list().then(setLogs).catch(()=>setLogs([])); }, []);
+  const loadAll = async () => {
+    setError("");
+    try {
+      const [l, a] = await Promise.all([logsApi.list(), activitiesApi.list()]);
+      setLogs(l);
+      setActivities(a);
+      if (!activityId && a.length > 0) setActivityId(a[0].id);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  const filterByActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activityId) return;
+    try {
+      setLogs(await logsApi.byActivity(activityId));
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div>
       <h2>操作日志</h2>
-      <form onSubmit={async(e)=>{e.preventDefault(); if(activityId){setLogs(await logsApi.byActivity(activityId));}}}>
-        <input value={activityId} onChange={(e)=>setActivityId(e.target.value)} placeholder="按 activity_id 筛选" />
-        <button>筛选</button>
+      <ApiError error={error} />
+      <form onSubmit={filterByActivity}>
+        <select value={activityId} onChange={(e) => setActivityId(e.target.value)}>
+          {activities.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
+        </select>
+        <button>按活动筛选</button>
+        <button type="button" onClick={loadAll}>查看全部</button>
       </form>
-      <ul>{logs.map(l=><li key={l.id}>{l.created_at} | {l.action} | {l.summary}</li>)}</ul>
+      <ul>{logs.map((l) => <li key={l.id}>{l.created_at} | {l.action} | {l.summary}</li>)}</ul>
     </div>
   );
 }

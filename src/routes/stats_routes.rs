@@ -6,7 +6,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/stats/overview", get(stats_handler::overview))
         .route(
-            "/api/stats/activities/{id}",
+            "/api/stats/activities/:id",
             get(stats_handler::activity_stats),
         )
 }

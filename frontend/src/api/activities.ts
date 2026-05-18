@@ -6,6 +6,7 @@ export const activitiesApi = {
   create: (payload: any) => apiClient.post<any>("/api/activities", payload),
   update: (id: string, payload: any) => apiClient.put<any>(`/api/activities/${id}`, payload),
   remove: (id: string) => apiClient.delete<void>(`/api/activities/${id}`),
+  listMembers: (id: string) => apiClient.get<any[]>(`/api/activities/${id}/members`),
   addMember: (id: string, payload: any) => apiClient.post<any>(`/api/activities/${id}/members`, payload),
   removeMember: (id: string, userId: string) =>
     apiClient.delete<void>(`/api/activities/${id}/members/${userId}`),

@@ -12,6 +12,13 @@ use crate::{
     state::AppState,
 };
 
+fn is_valid_task_status(status: &str) -> bool {
+    matches!(
+        status,
+        "pending" | "in_progress" | "completed" | "delayed" | "cancelled"
+    )
+}
+
 pub async fn create_task(
     state: &AppState,
     auth: &AuthUser,
@@ -34,10 +41,9 @@ pub async fn create_task(
             ));
         }
     }
-
     let task = sqlx::query_as::<_, Task>(
         r#"INSERT INTO tasks (id,activity_id,title,description,assignee_id,creator_id,priority,due_time,status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'todo')
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending')
            RETURNING id,activity_id,title,description,assignee_id,creator_id,priority,due_time,status,is_deleted,created_at,updated_at"#,
     )
     .bind(Uuid::new_v4())
@@ -54,10 +60,12 @@ pub async fn create_task(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(task.activity_id),
         "task",
         Some(task.id),
         "create",
         format!("user {} created task {}", auth.0.username, task.title),
+        serde_json::json!({}),
     )
     .await;
 
@@ -101,7 +109,7 @@ pub async fn get_task(
     .await?
     .ok_or_else(|| AppError::NotFound("task not found".to_string()))?;
 
-    if auth.0.role != "admin" {
+    if auth.0.role != "admin" && auth.0.role != "teacher" {
         activity_service::ensure_activity_read_access(state, auth, task.activity_id).await?;
     }
     Ok(task.into())
@@ -143,6 +151,11 @@ pub async fn update_task(
             ));
         }
     }
+    if let Some(status) = req.status.as_deref() {
+        if !is_valid_task_status(status) {
+            return Err(AppError::Validation("invalid task status".to_string()));
+        }
+    }
 
     let updated = sqlx::query_as::<_, Task>(
         r#"UPDATE tasks SET
@@ -165,6 +178,18 @@ pub async fn update_task(
     .fetch_one(&state.db)
     .await?;
 
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "task",
+        Some(updated.id),
+        "update",
+        format!("user {} updated task {}", auth.0.username, updated.title),
+        serde_json::json!({}),
+    )
+    .await;
+
     Ok(updated.into())
 }
 
@@ -186,6 +211,18 @@ pub async fn delete_task(state: &AppState, auth: &AuthUser, task_id: Uuid) -> Re
         .execute(&state.db)
         .await?;
 
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(task.activity_id),
+        "task",
+        Some(task_id),
+        "delete",
+        format!("user {} deleted task {}", auth.0.username, task.title),
+        serde_json::json!({}),
+    )
+    .await;
+
     Ok(())
 }
 
@@ -195,6 +232,9 @@ pub async fn update_task_status(
     task_id: Uuid,
     req: UpdateTaskStatusRequest,
 ) -> Result<TaskResponse, AppError> {
+    if !is_valid_task_status(&req.status) {
+        return Err(AppError::Validation("invalid task status".to_string()));
+    }
     let mut tx = state.db.begin().await?;
 
     let current = sqlx::query_as::<_, Task>(
@@ -231,13 +271,14 @@ pub async fn update_task_status(
     .await?;
 
     let log = sqlx::query_as::<_, TaskProgressLog>(
-        r#"INSERT INTO task_progress_logs (id,task_id,operator_id,old_status,new_status,comment)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           RETURNING id,task_id,operator_id,old_status,new_status,comment,created_at"#,
+        r#"INSERT INTO task_progress_logs (id,task_id,user_id,activity_id,old_status,new_status,content)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           RETURNING id,task_id,user_id,activity_id,old_status,new_status,content,created_at"#,
     )
     .bind(Uuid::new_v4())
     .bind(task_id)
     .bind(auth.0.id)
+    .bind(current.activity_id)
     .bind(current.status)
     .bind(updated.status.clone())
     .bind(req.comment)
@@ -250,6 +291,7 @@ pub async fn update_task_status(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(updated.activity_id),
         "task",
         Some(task_id),
         "status_update",
@@ -257,6 +299,7 @@ pub async fn update_task_status(
             "user {} changed task {} status to {}",
             auth.0.username, task_id, updated.status
         ),
+        serde_json::json!({}),
     )
     .await;
 
@@ -283,18 +326,34 @@ pub async fn add_progress_log(
     }
 
     let log = sqlx::query_as::<_, TaskProgressLog>(
-        r#"INSERT INTO task_progress_logs (id,task_id,operator_id,old_status,new_status,comment)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           RETURNING id,task_id,operator_id,old_status,new_status,comment,created_at"#,
+        r#"INSERT INTO task_progress_logs (id,task_id,user_id,activity_id,old_status,new_status,content)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           RETURNING id,task_id,user_id,activity_id,old_status,new_status,content,created_at"#,
     )
     .bind(Uuid::new_v4())
     .bind(task_id)
     .bind(auth.0.id)
+    .bind(task.activity_id)
     .bind(task.status.clone())
     .bind(task.status)
-    .bind(req.comment)
+    .bind(req.content)
     .fetch_one(&state.db)
     .await?;
+
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(task.activity_id),
+        "task_progress_log",
+        Some(log.id),
+        "add_progress",
+        format!(
+            "user {} added progress to task {}",
+            auth.0.username, task.title
+        ),
+        serde_json::json!({}),
+    )
+    .await;
 
     Ok(log.into())
 }
@@ -317,7 +376,7 @@ pub async fn list_task_logs(
     }
 
     let rows = sqlx::query_as::<_, TaskProgressLog>(
-        "SELECT id,task_id,operator_id,old_status,new_status,comment,created_at FROM task_progress_logs WHERE task_id=$1 ORDER BY created_at DESC",
+        "SELECT id,task_id,user_id,activity_id,old_status,new_status,content,created_at FROM task_progress_logs WHERE task_id=$1 ORDER BY created_at DESC",
     )
     .bind(task_id)
     .fetch_all(&state.db)
@@ -344,4 +403,20 @@ pub async fn list_activity_tasks(
     .await?;
 
     Ok(rows.into_iter().map(TaskResponse::from).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_valid_task_status;
+
+    #[test]
+    fn accepts_expected_task_statuses() {
+        assert!(is_valid_task_status("pending"));
+        assert!(is_valid_task_status("in_progress"));
+        assert!(is_valid_task_status("completed"));
+        assert!(is_valid_task_status("delayed"));
+        assert!(is_valid_task_status("cancelled"));
+        assert!(!is_valid_task_status("todo"));
+        assert!(!is_valid_task_status("done"));
+    }
 }

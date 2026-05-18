@@ -12,24 +12,24 @@ pub fn router() -> Router<AppState> {
             get(venue_handler::list_venues).post(venue_handler::create_venue),
         )
         .route(
-            "/api/venues/{id}",
+            "/api/venues/:id",
             put(venue_handler::update_venue).delete(venue_handler::delete_venue),
         )
         .route(
             "/api/venue-bookings",
             post(venue_handler::create_booking).get(venue_handler::list_bookings),
         )
-        .route("/api/venue-bookings/{id}", get(venue_handler::get_booking))
+        .route("/api/venue-bookings/:id", get(venue_handler::get_booking))
         .route(
-            "/api/venue-bookings/{id}/approve",
+            "/api/venue-bookings/:id/approve",
             post(venue_handler::approve_booking),
         )
         .route(
-            "/api/venue-bookings/{id}/reject",
+            "/api/venue-bookings/:id/reject",
             post(venue_handler::reject_booking),
         )
         .route(
-            "/api/venue-bookings/{id}/cancel",
+            "/api/venue-bookings/:id/cancel",
             post(venue_handler::cancel_booking),
         )
 }

@@ -1,4 +1,4 @@
-use axum::{
+﻿use axum::{
     extract::{Path, State},
     Json,
 };
@@ -58,6 +58,15 @@ pub async fn delete(
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     activity_service::delete_activity(&state, &auth, id).await?;
     Ok(Json(ApiResponse::success(())))
+}
+
+pub async fn list_members(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<Vec<crate::dto::activity::ActivityMemberResponse>>>, AppError> {
+    let data = activity_service::list_members(&state, &auth, id).await?;
+    Ok(Json(ApiResponse::success(data)))
 }
 
 pub async fn add_member(

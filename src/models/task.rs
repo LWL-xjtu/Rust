@@ -23,9 +23,10 @@ pub struct Task {
 pub struct TaskProgressLog {
     pub id: Uuid,
     pub task_id: Uuid,
-    pub operator_id: Uuid,
+    pub user_id: Uuid,
+    pub activity_id: Uuid,
     pub old_status: Option<String>,
     pub new_status: Option<String>,
-    pub comment: Option<String>,
+    pub content: Option<String>,
     pub created_at: DateTime<Utc>,
 }

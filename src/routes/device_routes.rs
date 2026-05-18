@@ -12,7 +12,7 @@ pub fn router() -> Router<AppState> {
             get(device_handler::list_devices).post(device_handler::create_device),
         )
         .route(
-            "/api/devices/{id}",
+            "/api/devices/:id",
             get(device_handler::get_device)
                 .put(device_handler::update_device)
                 .delete(device_handler::delete_device),
@@ -21,25 +21,25 @@ pub fn router() -> Router<AppState> {
             "/api/device-borrows",
             post(device_handler::create_borrow).get(device_handler::list_borrows),
         )
-        .route("/api/device-borrows/{id}", get(device_handler::get_borrow))
+        .route("/api/device-borrows/:id", get(device_handler::get_borrow))
         .route(
-            "/api/device-borrows/{id}/approve",
+            "/api/device-borrows/:id/approve",
             post(device_handler::approve_borrow),
         )
         .route(
-            "/api/device-borrows/{id}/reject",
+            "/api/device-borrows/:id/reject",
             post(device_handler::reject_borrow),
         )
         .route(
-            "/api/device-borrows/{id}/checkout",
+            "/api/device-borrows/:id/checkout",
             post(device_handler::checkout_borrow),
         )
         .route(
-            "/api/device-borrows/{id}/return",
+            "/api/device-borrows/:id/return",
             post(device_handler::return_borrow),
         )
         .route(
-            "/api/device-borrows/{id}/cancel",
+            "/api/device-borrows/:id/cancel",
             post(device_handler::cancel_borrow),
         )
 }

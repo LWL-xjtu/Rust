@@ -1,0 +1,24 @@
+﻿services:
+  - type: web
+    name: campus-collab-backend
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN_HOURS
+        value: "24"
+      - key: RUST_LOG
+        value: "info,campus_collab_backend=debug,sqlx=warn"
+      - key: APP_HOST
+        value: "0.0.0.0"
+      - key: APP_PORT
+        value: "8080"
+      - key: DATABASE_MAX_CONNECTIONS
+        value: "10"
+      - key: FRONTEND_ORIGIN
+        sync: false

@@ -12,6 +12,10 @@ use crate::{
     state::AppState,
 };
 
+fn has_manage_privilege(role: &str, owner_id: Uuid, user_id: Uuid) -> bool {
+    role == "admin" || role == "teacher" || owner_id == user_id
+}
+
 pub async fn create_activity(
     state: &AppState,
     auth: &AuthUser,
@@ -56,6 +60,7 @@ pub async fn create_activity(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(activity.id),
         "activity",
         Some(activity.id),
         "create",
@@ -63,6 +68,7 @@ pub async fn create_activity(
             "user {} created activity {}",
             auth.0.username, activity.title
         ),
+        serde_json::json!({}),
     )
     .await;
 
@@ -150,6 +156,7 @@ pub async fn update_activity(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(activity_id),
         "activity",
         Some(activity_id),
         "update",
@@ -157,6 +164,7 @@ pub async fn update_activity(
             "user {} updated activity {}",
             auth.0.username, updated.title
         ),
+        serde_json::json!({}),
     )
     .await;
 
@@ -183,14 +191,35 @@ pub async fn delete_activity(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(activity_id),
         "activity",
         Some(activity_id),
         "delete",
         format!("user {} deleted activity {}", auth.0.username, activity_id),
+        serde_json::json!({}),
     )
     .await;
 
     Ok(())
+}
+
+pub async fn list_members(
+    state: &AppState,
+    auth: &AuthUser,
+    activity_id: Uuid,
+) -> Result<Vec<ActivityMemberResponse>, AppError> {
+    ensure_activity_read_access(state, auth, activity_id).await?;
+
+    let rows = sqlx::query_as::<_, ActivityMember>(
+        r#"SELECT id,activity_id,user_id,member_role,joined_at
+           FROM activity_members WHERE activity_id=$1
+           ORDER BY joined_at ASC"#,
+    )
+    .bind(activity_id)
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(rows.into_iter().map(ActivityMemberResponse::from).collect())
 }
 
 pub async fn add_member(
@@ -200,6 +229,14 @@ pub async fn add_member(
     req: AddActivityMemberRequest,
 ) -> Result<ActivityMemberResponse, AppError> {
     ensure_activity_manage_access(state, auth, activity_id).await?;
+    let user_exists: Option<bool> =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)")
+            .bind(req.user_id)
+            .fetch_optional(&state.db)
+            .await?;
+    if !user_exists.unwrap_or(false) {
+        return Err(AppError::NotFound("user not found".to_string()));
+    }
 
     let member = sqlx::query_as::<_, ActivityMember>(
         r#"INSERT INTO activity_members (id,activity_id,user_id,member_role)
@@ -210,24 +247,29 @@ pub async fn add_member(
     .bind(activity_id)
     .bind(req.user_id)
     .bind(req.member_role.unwrap_or_else(|| "member".to_string()))
-    .fetch_optional(&state.db)
-    .await?;
-
-    let member = match member {
-        Some(v) => v,
-        None => return Err(AppError::Conflict("member already exists".to_string())),
-    };
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| match &e {
+        sqlx::Error::Database(db_err)
+            if db_err.constraint() == Some("activity_members_activity_id_user_id_key") =>
+        {
+            AppError::Conflict("member already exists".to_string())
+        }
+        _ => AppError::from(e),
+    })?;
 
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
-        "activity_member",
         Some(activity_id),
+        "activity_member",
+        Some(req.user_id),
         "add_member",
         format!(
             "user {} added member {} to activity {}",
             auth.0.username, req.user_id, activity_id
         ),
+        serde_json::json!({ "member_role": member.member_role }),
     )
     .await;
 
@@ -268,13 +310,15 @@ pub async fn remove_member(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
-        "activity_member",
         Some(activity_id),
+        "activity_member",
+        Some(user_id),
         "remove_member",
         format!(
             "user {} removed member {} from activity {}",
             auth.0.username, user_id, activity_id
         ),
+        serde_json::json!({}),
     )
     .await;
 
@@ -286,7 +330,7 @@ pub async fn ensure_activity_read_access(
     auth: &AuthUser,
     activity_id: Uuid,
 ) -> Result<(), AppError> {
-    if auth.0.role == "admin" {
+    if auth.0.role == "admin" || auth.0.role == "teacher" {
         return Ok(());
     }
 
@@ -325,7 +369,7 @@ pub async fn ensure_activity_manage_access(
             .await?;
 
     match owner_id {
-        Some(owner) if owner == auth.0.id => Ok(()),
+        Some(owner) if has_manage_privilege(&auth.0.role, owner, auth.0.id) => Ok(()),
         Some(_) => Err(AppError::Forbidden),
         None => Err(AppError::NotFound("activity not found".to_string())),
     }
@@ -344,4 +388,20 @@ pub async fn activity_member_exists(
     .fetch_optional(&state.db)
     .await?;
     Ok(exists.unwrap_or(false))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_manage_privilege;
+    use uuid::Uuid;
+
+    #[test]
+    fn manage_privilege_matches_role_policy() {
+        let owner = Uuid::new_v4();
+        let student = Uuid::new_v4();
+        assert!(has_manage_privilege("admin", owner, student));
+        assert!(has_manage_privilege("teacher", owner, student));
+        assert!(has_manage_privilege("student", owner, owner));
+        assert!(!has_manage_privilege("student", owner, student));
+    }
 }

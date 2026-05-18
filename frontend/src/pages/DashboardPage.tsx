@@ -2,6 +2,7 @@
 import { authApi } from "../api/auth";
 import { logsApi } from "../api/logs";
 import { statsApi } from "../api/stats";
+import ApiError from "../components/ApiError";
 import Loading from "../components/Loading";
 
 export default function DashboardPage() {
@@ -9,6 +10,7 @@ export default function DashboardPage() {
   const [me, setMe] = useState<any>(null);
   const [overview, setOverview] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -21,6 +23,8 @@ export default function DashboardPage() {
         } catch {
           setLogs([]);
         }
+      } catch (e: any) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
@@ -32,7 +36,10 @@ export default function DashboardPage() {
   return (
     <div>
       <h2>Dashboard</h2>
-      <p>当前用户：{me?.username}（{me?.role}）</p>
+      <ApiError error={error} />
+      <p>
+        当前用户：<b>{me?.username || "-"}</b>（<span className={`status status-${me?.role || "student"}`}>{me?.role || "-"}</span>）
+      </p>
       <div className="cards">
         <div>活动总数: {overview?.activities_count ?? "-"}</div>
         <div>场地预约数: {overview?.venue_bookings_count ?? "-"}</div>
@@ -42,7 +49,7 @@ export default function DashboardPage() {
         <div>用户总数: {overview?.users_count ?? "-"}</div>
       </div>
       <h3>最近操作日志（管理员可见）</h3>
-      <ul>{logs.slice(0, 10).map((l) => <li key={l.id}>{l.summary}</li>)}</ul>
+      <ul>{logs.slice(0, 10).map((l) => <li key={l.id}>{l.created_at} | {l.summary}</li>)}</ul>
     </div>
   );
 }

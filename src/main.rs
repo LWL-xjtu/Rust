@@ -1,4 +1,4 @@
-﻿mod config;
+mod config;
 mod dto;
 mod errors;
 mod handlers;
@@ -60,5 +60,3 @@ fn init_tracing() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 }
-
-

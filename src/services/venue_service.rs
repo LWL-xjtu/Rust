@@ -141,6 +141,7 @@ pub async fn create_booking(
     operation_log_service::try_log(
         state,
         Some(auth.0.id),
+        Some(booking.activity_id),
         "venue_booking",
         Some(booking.id),
         "apply",
@@ -148,6 +149,7 @@ pub async fn create_booking(
             "user {} applied venue booking {}",
             auth.0.username, booking.id
         ),
+        serde_json::json!({}),
     )
     .await;
 
@@ -247,6 +249,21 @@ pub async fn approve_booking(
     .fetch_one(&state.db)
     .await?;
 
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "venue_booking",
+        Some(updated.id),
+        "approve",
+        format!(
+            "user {} approved venue booking {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
+
     Ok(updated.into())
 }
 
@@ -269,6 +286,21 @@ pub async fn reject_booking(
     .fetch_optional(&state.db)
     .await?
     .ok_or_else(|| AppError::InvalidState("only pending booking can be rejected".to_string()))?;
+
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "venue_booking",
+        Some(updated.id),
+        "reject",
+        format!(
+            "user {} rejected venue booking {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
 
     Ok(updated.into())
 }
@@ -301,6 +333,21 @@ pub async fn cancel_booking(
     .fetch_optional(&state.db)
     .await?
     .ok_or_else(|| AppError::InvalidState("cannot cancel current booking state".to_string()))?;
+
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "venue_booking",
+        Some(updated.id),
+        "cancel",
+        format!(
+            "user {} cancelled venue booking {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
 
     Ok(updated.into())
 }

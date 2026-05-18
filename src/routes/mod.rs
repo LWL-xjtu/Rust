@@ -1,4 +1,4 @@
-﻿pub mod activity_routes;
+pub mod activity_routes;
 pub mod auth_routes;
 pub mod device_routes;
 pub mod health_routes;

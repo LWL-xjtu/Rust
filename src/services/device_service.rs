@@ -157,6 +157,20 @@ pub async fn create_borrow(
         .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(borrow.activity_id),
+        "device_borrow",
+        Some(borrow.id),
+        "apply",
+        format!(
+            "user {} created device borrow {}",
+            auth.0.username, borrow.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(borrow.into())
 }
 
@@ -235,6 +249,20 @@ pub async fn approve_borrow(
     .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "device_borrow",
+        Some(updated.id),
+        "approve",
+        format!(
+            "user {} approved device borrow {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(updated.into())
 }
 
@@ -278,6 +306,20 @@ pub async fn reject_borrow(
         .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "device_borrow",
+        Some(updated.id),
+        "reject",
+        format!(
+            "user {} rejected device borrow {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(updated.into())
 }
 
@@ -319,6 +361,20 @@ pub async fn checkout_borrow(
         .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "device_borrow",
+        Some(updated.id),
+        "checkout",
+        format!(
+            "user {} checked out device borrow {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(updated.into())
 }
 
@@ -360,6 +416,20 @@ pub async fn return_borrow(
         .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "device_borrow",
+        Some(updated.id),
+        "return",
+        format!(
+            "user {} returned device borrow {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(updated.into())
 }
 
@@ -404,5 +474,19 @@ pub async fn cancel_borrow(
         .await?;
 
     tx.commit().await?;
+    operation_log_service::try_log(
+        state,
+        Some(auth.0.id),
+        Some(updated.activity_id),
+        "device_borrow",
+        Some(updated.id),
+        "cancel",
+        format!(
+            "user {} cancelled device borrow {}",
+            auth.0.username, updated.id
+        ),
+        serde_json::json!({}),
+    )
+    .await;
     Ok(updated.into())
 }

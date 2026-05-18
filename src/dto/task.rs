@@ -32,7 +32,7 @@ pub struct UpdateTaskStatusRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct AddTaskProgressLogRequest {
-    pub comment: String,
+    pub content: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -53,10 +53,11 @@ pub struct TaskResponse {
 pub struct TaskProgressLogResponse {
     pub id: Uuid,
     pub task_id: Uuid,
-    pub operator_id: Uuid,
+    pub user_id: Uuid,
+    pub activity_id: Uuid,
     pub old_status: Option<String>,
     pub new_status: Option<String>,
-    pub comment: Option<String>,
+    pub content: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -82,10 +83,11 @@ impl From<TaskProgressLog> for TaskProgressLogResponse {
         Self {
             id: l.id,
             task_id: l.task_id,
-            operator_id: l.operator_id,
+            user_id: l.user_id,
+            activity_id: l.activity_id,
             old_status: l.old_status,
             new_status: l.new_status,
-            comment: l.comment,
+            content: l.content,
             created_at: l.created_at,
         }
     }
