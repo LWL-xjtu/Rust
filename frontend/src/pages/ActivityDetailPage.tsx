@@ -79,7 +79,9 @@ export default function ActivityDetailPage() {
       <form onSubmit={addMember}>
         <select value={memberUserId} onChange={(e) => setMemberUserId(e.target.value)}>
           {users.map((u) => (
-            <option value={u.id} key={u.id}>{u.username} ({u.role})</option>
+            <option value={u.id} key={u.id}>
+              {u.username} ({u.role}) - {u.college || "未填写"}
+            </option>
           ))}
         </select>
         <button type="submit">添加成员</button>

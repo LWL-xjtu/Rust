@@ -9,6 +9,7 @@ pub struct UserResponse {
     pub id: Uuid,
     pub username: String,
     pub role: String,
+    pub college: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -18,6 +19,7 @@ impl From<User> for UserResponse {
             id: value.id,
             username: value.username,
             role: value.role,
+            college: value.college,
             created_at: value.created_at,
         }
     }

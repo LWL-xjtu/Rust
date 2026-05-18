@@ -19,3 +19,16 @@ pub struct ActivityStatsResponse {
     pub device_borrows_count: i64,
     pub recent_logs: Vec<String>,
 }
+
+#[derive(Debug, Serialize, Clone)]
+pub struct CollegeStatsResponse {
+    pub college: String,
+    pub member_count: i64,
+    pub activity_count: i64,
+    pub task_count: i64,
+    pub completed_task_count: i64,
+    pub task_completion_rate: f64,
+    pub venue_reservation_count: i64,
+    pub equipment_borrow_count: i64,
+    pub progress_log_count: i64,
+}

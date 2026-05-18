@@ -9,7 +9,7 @@ export default function Sidebar() {
       <NavLink to="/devices">设备借用</NavLink>
       <NavLink to="/tasks">任务分工</NavLink>
       <NavLink to="/logs">操作日志</NavLink>
-      <NavLink to="/stats">统计</NavLink>
+      <NavLink to="/stats">书院/学院统计</NavLink>
     </aside>
   );
 }

@@ -13,6 +13,7 @@ pub async fn register(
     state: &AppState,
     username: &str,
     password_raw: &str,
+    college: Option<String>,
 ) -> Result<UserResponse, AppError> {
     validate_auth_input(username, password_raw)?;
 
@@ -27,15 +28,20 @@ pub async fn register(
 
     let user = sqlx::query_as::<_, User>(
         r#"
-        INSERT INTO users (id, username, password_hash, role)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, username, password_hash, role, created_at, updated_at
+        INSERT INTO users (id, username, password_hash, role, college)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, username, password_hash, role, college, created_at, updated_at
         "#,
     )
     .bind(user_id)
     .bind(username)
     .bind(hashed)
     .bind(role)
+    .bind(
+        college
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty()),
+    )
     .fetch_one(&state.db)
     .await?;
 
@@ -72,7 +78,7 @@ pub async fn find_user_by_username(
 ) -> Result<Option<User>, AppError> {
     let user = sqlx::query_as::<_, User>(
         r#"
-        SELECT id, username, password_hash, role, created_at, updated_at
+        SELECT id, username, password_hash, role, college, created_at, updated_at
         FROM users
         WHERE username = $1
         "#,

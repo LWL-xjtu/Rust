@@ -8,5 +8,6 @@ export type User = {
   id: string;
   username: string;
   role: "student" | "teacher" | "admin" | string;
+  college?: string | null;
   created_at: string;
 };

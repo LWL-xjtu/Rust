@@ -6,6 +6,7 @@ import ApiError from "../components/ApiError";
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [college, setCollege] = useState("");
   const [error, setError] = useState("");
   const nav = useNavigate();
 
@@ -13,7 +14,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     try {
-      await authApi.register(username, password);
+      await authApi.register({ username, password, college: college || null });
       await authApi.login(username, password);
       nav("/dashboard");
     } catch (err: any) {
@@ -27,6 +28,7 @@ export default function RegisterPage() {
       <form onSubmit={submit}>
         <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" required />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" required />
+        <input value={college} onChange={(e) => setCollege(e.target.value)} placeholder="书院/学院（可选）" />
         <button type="submit">注册</button>
       </form>
       <ApiError error={error} />

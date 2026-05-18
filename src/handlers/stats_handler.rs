@@ -27,3 +27,12 @@ pub async fn activity_stats(
         stats_service::activity_stats(&state, &auth, activity_id).await?,
     )))
 }
+
+pub async fn college_stats(
+    State(state): State<AppState>,
+    auth: AuthUser,
+) -> Result<Json<ApiResponse<Vec<crate::dto::stats::CollegeStatsResponse>>>, AppError> {
+    Ok(Json(ApiResponse::success(
+        stats_service::college_stats(&state, &auth).await?,
+    )))
+}

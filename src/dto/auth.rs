@@ -6,6 +6,7 @@ use crate::dto::user::UserResponse;
 pub struct RegisterRequest {
     pub username: String,
     pub password: String,
+    pub college: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

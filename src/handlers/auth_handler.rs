@@ -15,7 +15,13 @@ pub async fn register(
     State(state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<Json<ApiResponse<UserResponse>>, AppError> {
-    let user = auth_service::register(&state, &payload.username, &payload.password).await?;
+    let user = auth_service::register(
+        &state,
+        &payload.username,
+        &payload.password,
+        payload.college,
+    )
+    .await?;
     Ok(Json(ApiResponse::success(user)))
 }
 

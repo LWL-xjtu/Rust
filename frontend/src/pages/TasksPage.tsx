@@ -80,7 +80,7 @@ export default function TasksPage() {
         </select>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="任务标题" required />
         <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-          {users.map((u) => <option value={u.id} key={u.id}>{u.username}</option>)}
+          {users.map((u) => <option value={u.id} key={u.id}>{u.username} ({u.college || "未填写"})</option>)}
         </select>
         <button type="submit">创建任务</button>
       </form>
