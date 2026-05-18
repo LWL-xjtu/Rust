@@ -5,15 +5,15 @@ export default function Navbar() {
   const nav = useNavigate();
   return (
     <header className="navbar">
-      <div className="brand">Campus Collab</div>
+      <div className="brand">校园协作系统</div>
       <nav>
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/activities">Activities</Link>
-        <Link to="/venues">Venues</Link>
-        <Link to="/devices">Devices</Link>
-        <Link to="/tasks">Tasks</Link>
-        <Link to="/logs">Logs</Link>
-        <Link to="/stats">Stats</Link>
+        <Link to="/dashboard">仪表盘</Link>
+        <Link to="/activities">活动管理</Link>
+        <Link to="/venues">场地预约</Link>
+        <Link to="/devices">设备借用</Link>
+        <Link to="/tasks">任务分工</Link>
+        <Link to="/logs">操作日志</Link>
+        <Link to="/stats">数据统计</Link>
       </nav>
       <button
         onClick={() => {
@@ -21,7 +21,7 @@ export default function Navbar() {
           nav("/login");
         }}
       >
-        Logout
+        退出登录
       </button>
     </header>
   );

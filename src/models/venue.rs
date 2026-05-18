@@ -7,8 +7,10 @@ use uuid::Uuid;
 pub struct Venue {
     pub id: Uuid,
     pub name: String,
+    pub venue_type: String,
     pub location: String,
     pub capacity: i32,
+    pub note: Option<String>,
     pub status: String,
     pub is_deleted: bool,
     pub created_at: DateTime<Utc>,

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { activitiesApi } from "../api/activities";
 import { usersApi } from "../api/users";
 import ApiError from "../components/ApiError";
+import { zhStatus } from "../utils/display";
 
 export default function ActivityDetailPage() {
   const { id = "" } = useParams();
@@ -13,6 +14,7 @@ export default function ActivityDetailPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [memberUserId, setMemberUserId] = useState("");
   const [error, setError] = useState("");
+  const [pendingRemove, setPendingRemove] = useState<string>("");
 
   const load = async () => {
     if (!id) return;
@@ -54,9 +56,9 @@ export default function ActivityDetailPage() {
   };
 
   const removeMember = async (userId: string) => {
-    if (!confirm("确认移除该成员？")) return;
     try {
       await activitiesApi.removeMember(id, userId);
+      setPendingRemove("");
       await load();
     } catch (err: any) {
       setError(err.message);
@@ -70,7 +72,7 @@ export default function ActivityDetailPage() {
 
       <div className="panel">
         <p><b>标题：</b>{activity.title}</p>
-        <p><b>状态：</b><span className={`status status-${activity.status}`}>{activity.status}</span></p>
+        <p><b>状态：</b><span className={`status status-${activity.status}`}>{zhStatus(activity.status)}</span></p>
         <p><b>类型：</b>{activity.activity_type}</p>
         <p><b>描述：</b>{activity.description || "-"}</p>
       </div>
@@ -94,7 +96,7 @@ export default function ActivityDetailPage() {
               <td>{m.user_id}</td>
               <td>{m.member_role}</td>
               <td>{m.joined_at}</td>
-              <td>{m.member_role === "owner" ? "-" : <button onClick={() => removeMember(m.user_id)}>移除</button>}</td>
+              <td>{m.member_role === "owner" ? "-" : <button onClick={() => setPendingRemove(m.user_id)}>移除</button>}</td>
             </tr>
           ))}
         </tbody>
@@ -105,6 +107,19 @@ export default function ActivityDetailPage() {
 
       <h3>操作日志</h3>
       <ul>{logs.map((l) => <li key={l.id}>{l.created_at} | {l.summary}</li>)}</ul>
+
+      {pendingRemove ? (
+        <div className="modal-mask">
+          <div className="modal-card">
+            <h3>确认移除成员</h3>
+            <p>确认移除该成员吗？</p>
+            <div className="btn-row">
+              <button className="btn-secondary" onClick={() => setPendingRemove("")}>取消</button>
+              <button className="btn-danger" onClick={() => removeMember(pendingRemove)}>确认移除</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

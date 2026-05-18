@@ -24,8 +24,8 @@ export default function LoginPage() {
     <div className="auth-page">
       <h2>登录</h2>
       <form onSubmit={submit}>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" required />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" required />
+        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名" required />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" required />
         <button type="submit">登录</button>
       </form>
       <ApiError error={error} />

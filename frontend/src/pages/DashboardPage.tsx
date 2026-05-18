@@ -4,6 +4,7 @@ import { logsApi } from "../api/logs";
 import { statsApi } from "../api/stats";
 import ApiError from "../components/ApiError";
 import Loading from "../components/Loading";
+import { zhRole } from "../utils/display";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -35,10 +36,10 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h2>Dashboard</h2>
+      <h2>仪表盘</h2>
       <ApiError error={error} />
       <p>
-        当前用户：<b>{me?.username || "-"}</b>（<span className={`status status-${me?.role || "student"}`}>{me?.role || "-"}</span>）
+        当前用户：<b>{me?.username || "-"}</b>（<span className={`status status-${me?.role || "student"}`}>{zhRole(me?.role || "-")}</span>）
       </p>
       <div className="cards">
         <div>活动总数: {overview?.activities_count ?? "-"}</div>
@@ -48,7 +49,7 @@ export default function DashboardPage() {
         <div>已完成任务: {overview?.tasks_done_count ?? "-"}</div>
         <div>用户总数: {overview?.users_count ?? "-"}</div>
       </div>
-      <h3>最近操作日志（管理员可见）</h3>
+      <h3>最近操作日志（教师/管理员可见）</h3>
       <ul>{logs.slice(0, 10).map((l) => <li key={l.id}>{l.created_at} | {l.summary}</li>)}</ul>
     </div>
   );

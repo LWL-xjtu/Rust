@@ -9,6 +9,7 @@ pub struct Activity {
     pub title: String,
     pub description: Option<String>,
     pub activity_type: String,
+    pub college: Option<String>,
     pub owner_id: Uuid,
     pub start_time: Option<DateTime<Utc>>,
     pub end_time: Option<DateTime<Utc>>,

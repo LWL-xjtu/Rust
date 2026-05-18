@@ -7,16 +7,20 @@ use crate::models::venue::{Venue, VenueBooking};
 #[derive(Debug, Deserialize)]
 pub struct CreateVenueRequest {
     pub name: String,
+    pub venue_type: Option<String>,
     pub location: String,
     pub capacity: i32,
+    pub note: Option<String>,
     pub status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateVenueRequest {
     pub name: Option<String>,
+    pub venue_type: Option<String>,
     pub location: Option<String>,
     pub capacity: Option<i32>,
+    pub note: Option<String>,
     pub status: Option<String>,
 }
 
@@ -38,8 +42,10 @@ pub struct ActionReasonRequest {
 pub struct VenueResponse {
     pub id: Uuid,
     pub name: String,
+    pub venue_type: String,
     pub location: String,
     pub capacity: i32,
+    pub note: Option<String>,
     pub status: String,
 }
 
@@ -49,6 +55,9 @@ pub struct VenueBookingResponse {
     pub activity_id: Uuid,
     pub venue_id: Uuid,
     pub applicant_id: Uuid,
+    pub activity_name: Option<String>,
+    pub venue_name: Option<String>,
+    pub applicant_name: Option<String>,
     pub approver_id: Option<Uuid>,
     pub start_time: DateTime<Utc>,
     pub end_time: DateTime<Utc>,
@@ -62,8 +71,10 @@ impl From<Venue> for VenueResponse {
         Self {
             id: v.id,
             name: v.name,
+            venue_type: v.venue_type,
             location: v.location,
             capacity: v.capacity,
+            note: v.note,
             status: v.status,
         }
     }
@@ -76,6 +87,9 @@ impl From<VenueBooking> for VenueBookingResponse {
             activity_id: v.activity_id,
             venue_id: v.venue_id,
             applicant_id: v.applicant_id,
+            activity_name: None,
+            venue_name: None,
+            applicant_name: None,
             approver_id: v.approver_id,
             start_time: v.start_time,
             end_time: v.end_time,

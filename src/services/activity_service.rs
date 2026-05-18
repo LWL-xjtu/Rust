@@ -27,18 +27,23 @@ pub async fn create_activity(
 
     let id = Uuid::new_v4();
     let activity_type = req.activity_type.unwrap_or_else(|| "general".to_string());
+    let college = req
+        .college
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
 
     let mut tx = state.db.begin().await?;
 
     let activity = sqlx::query_as::<_, Activity>(
-        r#"INSERT INTO activities (id,title,description,activity_type,owner_id,start_time,end_time,status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,'draft')
-           RETURNING id,title,description,activity_type,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at"#,
+        r#"INSERT INTO activities (id,title,description,activity_type,college,owner_id,start_time,end_time,status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft')
+           RETURNING id,title,description,activity_type,college,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at"#,
     )
     .bind(id)
     .bind(req.title)
     .bind(req.description)
     .bind(activity_type)
+    .bind(college)
     .bind(auth.0.id)
     .bind(req.start_time)
     .bind(req.end_time)
@@ -81,14 +86,14 @@ pub async fn list_activities(
 ) -> Result<Vec<ActivityResponse>, AppError> {
     let rows = if auth.0.role == "admin" {
         sqlx::query_as::<_, Activity>(
-            r#"SELECT id,title,description,activity_type,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
+            r#"SELECT id,title,description,activity_type,college,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
                FROM activities WHERE is_deleted=FALSE ORDER BY created_at DESC"#,
         )
         .fetch_all(&state.db)
         .await?
     } else {
         sqlx::query_as::<_, Activity>(
-            r#"SELECT DISTINCT a.id,a.title,a.description,a.activity_type,a.owner_id,a.start_time,a.end_time,a.status,a.is_deleted,a.created_at,a.updated_at
+            r#"SELECT DISTINCT a.id,a.title,a.description,a.activity_type,a.college,a.owner_id,a.start_time,a.end_time,a.status,a.is_deleted,a.created_at,a.updated_at
                FROM activities a
                LEFT JOIN activity_members m ON a.id = m.activity_id
                WHERE a.is_deleted=FALSE AND (a.owner_id=$1 OR m.user_id=$1)
@@ -108,7 +113,7 @@ pub async fn get_activity(
     activity_id: Uuid,
 ) -> Result<ActivityResponse, AppError> {
     let activity = sqlx::query_as::<_, Activity>(
-        r#"SELECT id,title,description,activity_type,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
+        r#"SELECT id,title,description,activity_type,college,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
            FROM activities WHERE id=$1 AND is_deleted=FALSE"#,
     )
     .bind(activity_id)
@@ -129,7 +134,7 @@ pub async fn update_activity(
     ensure_activity_manage_access(state, auth, activity_id).await?;
 
     let current = sqlx::query_as::<_, Activity>(
-        r#"SELECT id,title,description,activity_type,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
+        r#"SELECT id,title,description,activity_type,college,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at
            FROM activities WHERE id=$1 AND is_deleted=FALSE"#,
     )
     .bind(activity_id)
@@ -139,14 +144,20 @@ pub async fn update_activity(
 
     let updated = sqlx::query_as::<_, Activity>(
         r#"UPDATE activities
-           SET title=$2, description=$3, activity_type=$4, start_time=$5, end_time=$6, status=$7
+           SET title=$2, description=$3, activity_type=$4, college=$5, start_time=$6, end_time=$7, status=$8
            WHERE id=$1
-           RETURNING id,title,description,activity_type,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at"#,
+           RETURNING id,title,description,activity_type,college,owner_id,start_time,end_time,status,is_deleted,created_at,updated_at"#,
     )
     .bind(activity_id)
     .bind(req.title.unwrap_or(current.title))
     .bind(req.description.or(current.description))
     .bind(req.activity_type.unwrap_or(current.activity_type))
+    .bind(
+        req.college
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .or(current.college),
+    )
     .bind(req.start_time.or(current.start_time))
     .bind(req.end_time.or(current.end_time))
     .bind(req.status.unwrap_or(current.status))

@@ -1,151 +1,139 @@
-import { useEffect, useState } from "react";
-import { activitiesApi } from "../api/activities";
+import { useEffect, useMemo, useState } from "react";
 import { statsApi } from "../api/stats";
 import ApiError from "../components/ApiError";
 
-function toPercent(value: number) {
-  const n = Number.isFinite(value) ? value : 0;
+function pct(v: number) {
+  const n = Number.isFinite(v) ? v : 0;
   return `${n.toFixed(2)}%`;
 }
 
 export default function StatsPage() {
-  const [overview, setOverview] = useState<any>(null);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [activityId, setActivityId] = useState("");
-  const [activityStats, setActivityStats] = useState<any>(null);
-  const [collegeStats, setCollegeStats] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [collegeLoading, setCollegeLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
-      setError("");
       setLoading(true);
-      setCollegeLoading(true);
       try {
-        const [o, a, c] = await Promise.all([
-          statsApi.overview(),
-          activitiesApi.list(),
-          statsApi.colleges(),
-        ]);
-        setOverview(o);
-        setActivities(a);
-        setCollegeStats(c);
-        if (a.length > 0) setActivityId(a[0].id);
+        setData(await statsApi.colleges());
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
-        setCollegeLoading(false);
       }
     })();
   }, []);
 
-  const queryActivityStats = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activityId) return;
-    try {
-      setActivityStats(await statsApi.byActivity(activityId));
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
+  const summary = useMemo(() => {
+    const byActivity = data?.by_activity_college || [];
+    const collegeCount = byActivity.length;
+    const activityCount = byActivity.reduce((n: number, r: any) => n + (r.activity_count || 0), 0);
+    const taskCount = byActivity.reduce((n: number, r: any) => n + (r.task_count || 0), 0);
+    const doneCount = byActivity.reduce((n: number, r: any) => n + (r.completed_task_count || 0), 0);
+    const resourceCount = byActivity.reduce(
+      (n: number, r: any) => n + (r.venue_reservation_count || 0) + (r.equipment_borrow_count || 0),
+      0,
+    );
+    return {
+      collegeCount,
+      activityCount,
+      resourceCount,
+      completionRate: taskCount > 0 ? (doneCount * 100) / taskCount : 0,
+    };
+  }, [data]);
 
   return (
     <div>
-      <h2>书院/学院统计</h2>
+      <h2>学院/书院统计</h2>
       <ApiError error={error} />
 
-      {loading ? <p>加载统计中...</p> : null}
-      {overview && (
-        <div className="cards">
-          <div>活动: {overview.activities_count}</div>
-          <div>预约: {overview.venue_bookings_count}</div>
-          <div>借用: {overview.device_borrows_count}</div>
-          <div>任务: {overview.tasks_count}</div>
-          <div>完成任务: {overview.tasks_done_count}</div>
-          <div>用户: {overview.users_count}</div>
-        </div>
-      )}
+      {loading ? <p>加载中...</p> : null}
+
+      <div className="cards">
+        <div>学院/书院总数：{summary.collegeCount}</div>
+        <div>活动总数：{summary.activityCount}</div>
+        <div>任务完成率：{pct(summary.completionRate)}</div>
+        <div>资源使用次数：{summary.resourceCount}</div>
+      </div>
 
       <div className="panel">
-        <h3>书院/学院统计</h3>
-        <p>按用户所属书院/学院统计活动参与、任务完成、资源使用等情况。</p>
-        {collegeLoading ? <p>加载中...</p> : null}
-        {!collegeLoading && collegeStats.length === 0 ? <p>暂无书院/学院统计数据。</p> : null}
-        {collegeStats.length > 0 ? (
+        <h3>活动归属统计</h3>
+        {data?.by_activity_college?.length ? (
           <table className="table">
             <thead>
               <tr>
-                <th>书院/学院</th>
-                <th>用户数</th>
-                <th>参与活动数</th>
-                <th>任务总数</th>
-                <th>已完成任务数</th>
-                <th>任务完成率</th>
-                <th>场地预约数</th>
-                <th>设备借用数</th>
-                <th>进度记录数</th>
+                <th>学院/书院</th>
+                <th>活动数量</th>
+                <th>场地预约数量</th>
+                <th>设备借用数量</th>
+                <th>任务数量</th>
+                <th>已完成任务数量</th>
+                <th>完成率</th>
               </tr>
             </thead>
             <tbody>
-              {collegeStats.map((row) => (
-                <tr key={row.college}>
+              {data.by_activity_college.map((row: any) => (
+                <tr key={`a-${row.college}`}>
                   <td>{row.college}</td>
-                  <td>{row.member_count}</td>
                   <td>{row.activity_count}</td>
+                  <td>{row.venue_reservation_count}</td>
+                  <td>{row.equipment_borrow_count}</td>
                   <td>{row.task_count}</td>
                   <td>{row.completed_task_count}</td>
-                  <td style={{ minWidth: 190 }}>
-                    <div style={{ background: "#e8edf6", borderRadius: 999, height: 10 }}>
+                  <td>
+                    <div style={{ background: "#e8edf6", borderRadius: 99, height: 10 }}>
                       <div
                         style={{
                           width: `${Math.min(100, Number(row.task_completion_rate) || 0)}%`,
                           height: 10,
-                          borderRadius: 999,
+                          borderRadius: 99,
                           background: "#1f6a3f",
                         }}
                       />
                     </div>
-                    <small>{toPercent(Number(row.task_completion_rate))}</small>
+                    <small>{pct(Number(row.task_completion_rate))}</small>
                   </td>
-                  <td>{row.venue_reservation_count}</td>
-                  <td>{row.equipment_borrow_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>暂无统计数据，请先创建带学院/书院信息的活动。</p>
+        )}
+      </div>
+
+      <div className="panel">
+        <h3>成员归属统计</h3>
+        {data?.by_user_college?.length ? (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>学院/书院</th>
+                <th>用户数量</th>
+                <th>参与活动数量</th>
+                <th>被分配任务数量</th>
+                <th>已完成任务数量</th>
+                <th>提交进度数量</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.by_user_college.map((row: any) => (
+                <tr key={`u-${row.college}`}>
+                  <td>{row.college}</td>
+                  <td>{row.user_count}</td>
+                  <td>{row.joined_activity_count}</td>
+                  <td>{row.assigned_task_count}</td>
+                  <td>{row.completed_task_count}</td>
                   <td>{row.progress_log_count}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : null}
+        ) : (
+          <p>暂无统计数据，请先完善用户学院/书院信息。</p>
+        )}
       </div>
-
-      <form onSubmit={queryActivityStats}>
-        <select value={activityId} onChange={(e) => setActivityId(e.target.value)}>
-          {activities.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.title}
-            </option>
-          ))}
-        </select>
-        <button>查询活动统计</button>
-      </form>
-
-      {activityStats && (
-        <div className="panel">
-          <p>成员数：{activityStats.members_count}</p>
-          <p>任务总数：{activityStats.tasks_count}</p>
-          <p>已完成任务：{activityStats.tasks_done_count}</p>
-          <p>场地预约数：{activityStats.venue_bookings_count}</p>
-          <p>设备借用数：{activityStats.device_borrows_count}</p>
-          <p>最近日志：</p>
-          <ul>
-            {(activityStats.recent_logs || []).map((s: string, i: number) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

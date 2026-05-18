@@ -2,6 +2,7 @@
 import { activitiesApi } from "../api/activities";
 import { logsApi } from "../api/logs";
 import ApiError from "../components/ApiError";
+import { zhAction } from "../utils/display";
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -46,7 +47,8 @@ export default function LogsPage() {
         <button>按活动筛选</button>
         <button type="button" onClick={loadAll}>查看全部</button>
       </form>
-      <ul>{logs.map((l) => <li key={l.id}>{l.created_at} | {l.action} | {l.summary}</li>)}</ul>
+      {logs.length === 0 ? <p>暂无操作日志，完成业务操作后会自动记录。</p> : null}
+      <ul>{logs.map((l) => <li key={l.id}>{new Date(l.created_at).toLocaleString("zh-CN")} | {zhAction(l.action)} | {l.summary}</li>)}</ul>
     </div>
   );
 }

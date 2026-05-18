@@ -11,10 +11,11 @@ use crate::{
     services::{activity_service, operation_log_service},
     state::AppState,
 };
+use sqlx::FromRow;
 
 pub async fn list_venues(state: &AppState) -> Result<Vec<VenueResponse>, AppError> {
     let rows = sqlx::query_as::<_, Venue>(
-        "SELECT id,name,location,capacity,status,is_deleted,created_at,updated_at FROM venues WHERE is_deleted=FALSE ORDER BY created_at DESC",
+        "SELECT id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at FROM venues WHERE is_deleted=FALSE ORDER BY created_at DESC",
     )
     .fetch_all(&state.db)
     .await?;
@@ -29,14 +30,16 @@ pub async fn create_venue(
     operation_log_service::ensure_admin(&auth.0.role)?;
 
     let venue = sqlx::query_as::<_, Venue>(
-        r#"INSERT INTO venues (id,name,location,capacity,status)
-           VALUES ($1,$2,$3,$4,$5)
-           RETURNING id,name,location,capacity,status,is_deleted,created_at,updated_at"#,
+        r#"INSERT INTO venues (id,name,venue_type,location,capacity,note,status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           RETURNING id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at"#,
     )
     .bind(Uuid::new_v4())
     .bind(req.name)
+    .bind(req.venue_type.unwrap_or_else(|| "other".to_string()))
     .bind(req.location)
     .bind(req.capacity)
+    .bind(req.note)
     .bind(req.status.unwrap_or_else(|| "available".to_string()))
     .fetch_one(&state.db)
     .await?;
@@ -52,7 +55,7 @@ pub async fn update_venue(
     operation_log_service::ensure_admin(&auth.0.role)?;
 
     let current = sqlx::query_as::<_, Venue>(
-        "SELECT id,name,location,capacity,status,is_deleted,created_at,updated_at FROM venues WHERE id=$1 AND is_deleted=FALSE",
+        "SELECT id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at FROM venues WHERE id=$1 AND is_deleted=FALSE",
     )
     .bind(venue_id)
     .fetch_optional(&state.db)
@@ -60,14 +63,16 @@ pub async fn update_venue(
     .ok_or_else(|| AppError::NotFound("venue not found".to_string()))?;
 
     let updated = sqlx::query_as::<_, Venue>(
-        r#"UPDATE venues SET name=$2,location=$3,capacity=$4,status=$5
+        r#"UPDATE venues SET name=$2,venue_type=$3,location=$4,capacity=$5,note=$6,status=$7
            WHERE id=$1
-           RETURNING id,name,location,capacity,status,is_deleted,created_at,updated_at"#,
+           RETURNING id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at"#,
     )
     .bind(venue_id)
     .bind(req.name.unwrap_or(current.name))
+    .bind(req.venue_type.unwrap_or(current.venue_type))
     .bind(req.location.unwrap_or(current.location))
     .bind(req.capacity.unwrap_or(current.capacity))
+    .bind(req.note.or(current.note))
     .bind(req.status.unwrap_or(current.status))
     .fetch_one(&state.db)
     .await?;
@@ -160,18 +165,27 @@ pub async fn list_bookings(
     state: &AppState,
     auth: &AuthUser,
 ) -> Result<Vec<VenueBookingResponse>, AppError> {
-    let rows = if auth.0.role == "admin" {
-        sqlx::query_as::<_, VenueBooking>(
-            "SELECT id,activity_id,venue_id,applicant_id,approver_id,start_time,end_time,status,reason,created_at,updated_at FROM venue_bookings ORDER BY created_at DESC",
+    let rows: Vec<VenueBookingView> = if auth.0.role == "admin" || auth.0.role == "teacher" {
+        sqlx::query_as::<_, VenueBookingView>(
+            r#"SELECT vb.id,vb.activity_id,vb.venue_id,vb.applicant_id,vb.approver_id,vb.start_time,vb.end_time,vb.status,vb.reason,vb.created_at,
+               a.title AS activity_name, v.name AS venue_name, u.username AS applicant_name
+               FROM venue_bookings vb
+               LEFT JOIN activities a ON a.id = vb.activity_id
+               LEFT JOIN venues v ON v.id = vb.venue_id
+               LEFT JOIN users u ON u.id = vb.applicant_id
+               ORDER BY vb.created_at DESC"#,
         )
         .fetch_all(&state.db)
         .await?
     } else {
-        sqlx::query_as::<_, VenueBooking>(
-            r#"SELECT vb.id,vb.activity_id,vb.venue_id,vb.applicant_id,vb.approver_id,vb.start_time,vb.end_time,vb.status,vb.reason,vb.created_at,vb.updated_at
+        sqlx::query_as::<_, VenueBookingView>(
+            r#"SELECT vb.id,vb.activity_id,vb.venue_id,vb.applicant_id,vb.approver_id,vb.start_time,vb.end_time,vb.status,vb.reason,vb.created_at,
+               a.title AS activity_name, v.name AS venue_name, u.username AS applicant_name
                FROM venue_bookings vb
                LEFT JOIN activity_members m ON vb.activity_id=m.activity_id
                LEFT JOIN activities a ON vb.activity_id=a.id
+               LEFT JOIN venues v ON v.id = vb.venue_id
+               LEFT JOIN users u ON u.id = vb.applicant_id
                WHERE vb.applicant_id=$1 OR a.owner_id=$1 OR m.user_id=$1
                ORDER BY vb.created_at DESC"#,
         )
@@ -188,8 +202,14 @@ pub async fn get_booking(
     auth: &AuthUser,
     booking_id: Uuid,
 ) -> Result<VenueBookingResponse, AppError> {
-    let booking = sqlx::query_as::<_, VenueBooking>(
-        "SELECT id,activity_id,venue_id,applicant_id,approver_id,start_time,end_time,status,reason,created_at,updated_at FROM venue_bookings WHERE id=$1",
+    let booking = sqlx::query_as::<_, VenueBookingView>(
+        r#"SELECT vb.id,vb.activity_id,vb.venue_id,vb.applicant_id,vb.approver_id,vb.start_time,vb.end_time,vb.status,vb.reason,vb.created_at,
+           a.title AS activity_name, v.name AS venue_name, u.username AS applicant_name
+           FROM venue_bookings vb
+           LEFT JOIN activities a ON a.id = vb.activity_id
+           LEFT JOIN venues v ON v.id = vb.venue_id
+           LEFT JOIN users u ON u.id = vb.applicant_id
+           WHERE vb.id=$1"#,
     )
     .bind(booking_id)
     .fetch_optional(&state.db)
@@ -265,6 +285,43 @@ pub async fn approve_booking(
     .await;
 
     Ok(updated.into())
+}
+
+#[derive(Debug, FromRow)]
+struct VenueBookingView {
+    id: Uuid,
+    activity_id: Uuid,
+    venue_id: Uuid,
+    applicant_id: Uuid,
+    approver_id: Option<Uuid>,
+    start_time: chrono::DateTime<chrono::Utc>,
+    end_time: chrono::DateTime<chrono::Utc>,
+    status: String,
+    reason: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    activity_name: Option<String>,
+    venue_name: Option<String>,
+    applicant_name: Option<String>,
+}
+
+impl From<VenueBookingView> for VenueBookingResponse {
+    fn from(v: VenueBookingView) -> Self {
+        Self {
+            id: v.id,
+            activity_id: v.activity_id,
+            venue_id: v.venue_id,
+            applicant_id: v.applicant_id,
+            activity_name: v.activity_name,
+            venue_name: v.venue_name,
+            applicant_name: v.applicant_name,
+            approver_id: v.approver_id,
+            start_time: v.start_time,
+            end_time: v.end_time,
+            status: v.status,
+            reason: v.reason,
+            created_at: v.created_at,
+        }
+    }
 }
 
 pub async fn reject_booking(

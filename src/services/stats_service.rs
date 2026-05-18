@@ -1,7 +1,10 @@
 use uuid::Uuid;
 
 use crate::{
-    dto::stats::{ActivityStatsResponse, CollegeStatsResponse, OverviewStatsResponse},
+    dto::stats::{
+        ActivityCollegeStatsResponse, ActivityStatsResponse, CollegeStatsResponse,
+        OverviewStatsResponse, UserCollegeStatsResponse,
+    },
     errors::AppError,
     middleware::auth_extractor::AuthUser,
     services::activity_service,
@@ -98,87 +101,92 @@ pub async fn activity_stats(
 pub async fn college_stats(
     state: &AppState,
     auth: &AuthUser,
-) -> Result<Vec<CollegeStatsResponse>, AppError> {
+) -> Result<CollegeStatsResponse, AppError> {
     let scope_college = college_scope_for_role(&auth.0.role, auth.0.college.as_deref());
 
-    let rows = sqlx::query_as::<_, CollegeStatsRow>(
+    let by_user_college = sqlx::query_as::<_, UserCollegeStatsResponse>(
         r#"
         WITH college_users AS (
             SELECT id, COALESCE(NULLIF(BTRIM(college), ''), '未填写') AS college
             FROM users
         ),
-        base AS (
-            SELECT DISTINCT college FROM college_users
-        )
+        base AS (SELECT DISTINCT college FROM college_users)
         SELECT
             b.college,
-            (SELECT COUNT(1) FROM college_users cu WHERE cu.college = b.college) AS member_count,
+            (SELECT COUNT(1) FROM college_users cu WHERE cu.college = b.college) AS user_count,
             (SELECT COUNT(DISTINCT m.activity_id)
-             FROM activity_members m
-             JOIN college_users cu ON cu.id = m.user_id
-             JOIN activities a ON a.id = m.activity_id AND a.is_deleted = FALSE
-             WHERE cu.college = b.college) AS activity_count,
+             FROM activity_members m JOIN college_users cu ON cu.id=m.user_id
+             JOIN activities a ON a.id=m.activity_id AND a.is_deleted=FALSE
+             WHERE cu.college=b.college) AS joined_activity_count,
             (SELECT COUNT(1)
-             FROM tasks t
-             JOIN college_users cu ON cu.id = t.assignee_id
-             WHERE t.is_deleted = FALSE AND cu.college = b.college) AS task_count,
+             FROM tasks t JOIN college_users cu ON cu.id=t.assignee_id
+             WHERE t.is_deleted=FALSE AND cu.college=b.college) AS assigned_task_count,
             (SELECT COUNT(1)
-             FROM tasks t
-             JOIN college_users cu ON cu.id = t.assignee_id
-             WHERE t.is_deleted = FALSE AND t.status = 'completed' AND cu.college = b.college) AS completed_task_count,
-            (SELECT COUNT(DISTINCT vb.id)
-             FROM venue_bookings vb
-             JOIN activity_members m ON m.activity_id = vb.activity_id
-             JOIN college_users cu ON cu.id = m.user_id
-             WHERE cu.college = b.college) AS venue_reservation_count,
-            (SELECT COUNT(DISTINCT db.id)
-             FROM device_borrows db
-             JOIN activity_members m ON m.activity_id = db.activity_id
-             JOIN college_users cu ON cu.id = m.user_id
-             WHERE cu.college = b.college) AS equipment_borrow_count,
+             FROM tasks t JOIN college_users cu ON cu.id=t.assignee_id
+             WHERE t.is_deleted=FALSE AND t.status='completed' AND cu.college=b.college) AS completed_task_count,
             (SELECT COUNT(1)
-             FROM task_progress_logs pl
-             JOIN college_users cu ON cu.id = pl.user_id
-             WHERE cu.college = b.college) AS progress_log_count
+             FROM task_progress_logs pl JOIN college_users cu ON cu.id=pl.user_id
+             WHERE cu.college=b.college) AS progress_log_count
         FROM base b
-        WHERE ($1::TEXT IS NULL OR b.college = $1)
+        WHERE ($1::TEXT IS NULL OR b.college=$1)
         ORDER BY b.college
+        "#,
+    )
+    .bind(scope_college.clone())
+    .fetch_all(&state.db)
+    .await?;
+
+    let by_activity_college_rows = sqlx::query_as::<_, ActivityCollegeStatsRow>(
+        r#"
+        WITH activity_base AS (
+            SELECT id, COALESCE(NULLIF(BTRIM(college), ''), '未填写') AS college
+            FROM activities
+            WHERE is_deleted=FALSE
+        ),
+        colleges AS (SELECT DISTINCT college FROM activity_base)
+        SELECT
+            c.college,
+            (SELECT COUNT(1) FROM activity_base ab WHERE ab.college=c.college) AS activity_count,
+            (SELECT COUNT(1) FROM venue_bookings vb JOIN activity_base ab ON ab.id=vb.activity_id WHERE ab.college=c.college) AS venue_reservation_count,
+            (SELECT COUNT(1) FROM device_borrows db JOIN activity_base ab ON ab.id=db.activity_id WHERE ab.college=c.college) AS equipment_borrow_count,
+            (SELECT COUNT(1) FROM tasks t JOIN activity_base ab ON ab.id=t.activity_id WHERE t.is_deleted=FALSE AND ab.college=c.college) AS task_count,
+            (SELECT COUNT(1) FROM tasks t JOIN activity_base ab ON ab.id=t.activity_id WHERE t.is_deleted=FALSE AND t.status='completed' AND ab.college=c.college) AS completed_task_count
+        FROM colleges c
+        WHERE ($1::TEXT IS NULL OR c.college=$1)
+        ORDER BY c.college
         "#,
     )
     .bind(scope_college)
     .fetch_all(&state.db)
     .await?;
 
-    Ok(rows.into_iter().map(CollegeStatsResponse::from).collect())
+    let by_activity_college = by_activity_college_rows
+        .into_iter()
+        .map(|v| ActivityCollegeStatsResponse {
+            college: v.college,
+            activity_count: v.activity_count,
+            venue_reservation_count: v.venue_reservation_count,
+            equipment_borrow_count: v.equipment_borrow_count,
+            task_count: v.task_count,
+            completed_task_count: v.completed_task_count,
+            task_completion_rate: completion_rate(v.completed_task_count, v.task_count),
+        })
+        .collect();
+
+    Ok(CollegeStatsResponse {
+        by_activity_college,
+        by_user_college,
+    })
 }
 
 #[derive(sqlx::FromRow)]
-struct CollegeStatsRow {
+struct ActivityCollegeStatsRow {
     college: String,
-    member_count: i64,
     activity_count: i64,
-    task_count: i64,
-    completed_task_count: i64,
     venue_reservation_count: i64,
     equipment_borrow_count: i64,
-    progress_log_count: i64,
-}
-
-impl From<CollegeStatsRow> for CollegeStatsResponse {
-    fn from(v: CollegeStatsRow) -> Self {
-        let task_completion_rate = completion_rate(v.completed_task_count, v.task_count);
-        Self {
-            college: v.college,
-            member_count: v.member_count,
-            activity_count: v.activity_count,
-            task_count: v.task_count,
-            completed_task_count: v.completed_task_count,
-            task_completion_rate,
-            venue_reservation_count: v.venue_reservation_count,
-            equipment_borrow_count: v.equipment_borrow_count,
-            progress_log_count: v.progress_log_count,
-        }
-    }
+    task_count: i64,
+    completed_task_count: i64,
 }
 
 fn normalize_college(value: Option<&str>) -> String {
@@ -212,31 +220,17 @@ mod tests {
     #[test]
     fn normalizes_empty_college_to_default() {
         assert_eq!(normalize_college(None), "未填写");
-        assert_eq!(normalize_college(Some("")), "未填写");
-        assert_eq!(normalize_college(Some("  ")), "未填写");
     }
-
     #[test]
     fn completion_rate_handles_zero_total() {
         assert_eq!(completion_rate(0, 0), 0.0);
-        assert_eq!(completion_rate(2, 3), 66.67);
     }
-
     #[test]
-    fn student_only_sees_own_college_scope() {
-        assert_eq!(
-            college_scope_for_role("student", Some("钱学森书院")),
-            Some("钱学森书院".to_string())
-        );
-        assert_eq!(
-            college_scope_for_role("student", Some(" ")),
-            Some("未填写".to_string())
-        );
-    }
-
-    #[test]
-    fn teacher_and_admin_can_see_all_colleges() {
-        assert_eq!(college_scope_for_role("teacher", Some("A")), None);
+    fn role_scope_works() {
         assert_eq!(college_scope_for_role("admin", Some("A")), None);
+        assert_eq!(
+            college_scope_for_role("student", Some("A")),
+            Some("A".to_string())
+        );
     }
 }

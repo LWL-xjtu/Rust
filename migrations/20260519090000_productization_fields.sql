@@ -1,0 +1,17 @@
+ALTER TABLE activities
+    ADD COLUMN IF NOT EXISTS college TEXT;
+
+ALTER TABLE venues
+    ADD COLUMN IF NOT EXISTS venue_type TEXT NOT NULL DEFAULT 'other',
+    ADD COLUMN IF NOT EXISTS note TEXT;
+
+ALTER TABLE devices
+    ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '未填写',
+    ADD COLUMN IF NOT EXISTS quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0);
+
+ALTER TABLE device_borrows
+    ADD COLUMN IF NOT EXISTS quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    ADD COLUMN IF NOT EXISTS start_time TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS purpose TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_activities_college ON activities(college);

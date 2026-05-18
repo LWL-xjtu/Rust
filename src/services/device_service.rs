@@ -15,7 +15,7 @@ use crate::{
 
 pub async fn list_devices(state: &AppState) -> Result<Vec<DeviceResponse>, AppError> {
     let rows = sqlx::query_as::<_, Device>(
-        "SELECT id,name,category,serial_no,status,description,is_deleted,created_at,updated_at FROM devices WHERE is_deleted=FALSE ORDER BY created_at DESC",
+        "SELECT id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at FROM devices WHERE is_deleted=FALSE ORDER BY created_at DESC",
     )
     .fetch_all(&state.db)
     .await?;
@@ -30,14 +30,14 @@ pub async fn create_device(
     operation_log_service::ensure_admin(&auth.0.role)?;
 
     let device = sqlx::query_as::<_, Device>(
-        r#"INSERT INTO devices (id,name,category,serial_no,status,description)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           RETURNING id,name,category,serial_no,status,description,is_deleted,created_at,updated_at"#,
+        r#"INSERT INTO devices (id,name,category,serial_no,location,quantity,status,description) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at"#,
     )
     .bind(Uuid::new_v4())
     .bind(req.name)
     .bind(req.category)
     .bind(req.serial_no)
+    .bind(req.location.unwrap_or_else(|| "未填写".to_string()))
+    .bind(req.quantity.unwrap_or(1))
     .bind(req.status.unwrap_or_else(|| "available".to_string()))
     .bind(req.description)
     .fetch_one(&state.db)
@@ -47,7 +47,7 @@ pub async fn create_device(
 
 pub async fn get_device(state: &AppState, device_id: Uuid) -> Result<DeviceResponse, AppError> {
     let device = sqlx::query_as::<_, Device>(
-        "SELECT id,name,category,serial_no,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
+        "SELECT id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
     )
     .bind(device_id)
     .fetch_optional(&state.db)
@@ -65,7 +65,7 @@ pub async fn update_device(
     operation_log_service::ensure_admin(&auth.0.role)?;
 
     let current = sqlx::query_as::<_, Device>(
-        "SELECT id,name,category,serial_no,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
+        "SELECT id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
     )
     .bind(device_id)
     .fetch_optional(&state.db)
@@ -73,13 +73,15 @@ pub async fn update_device(
     .ok_or_else(|| AppError::NotFound("device not found".to_string()))?;
 
     let updated = sqlx::query_as::<_, Device>(
-        r#"UPDATE devices SET name=$2,category=$3,status=$4,description=$5
+        r#"UPDATE devices SET name=$2,category=$3,location=$4,quantity=$5,status=$6,description=$7
            WHERE id=$1
-           RETURNING id,name,category,serial_no,status,description,is_deleted,created_at,updated_at"#,
+           RETURNING id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at"#,
     )
     .bind(device_id)
     .bind(req.name.unwrap_or(current.name))
     .bind(req.category.unwrap_or(current.category))
+    .bind(req.location.unwrap_or(current.location))
+    .bind(req.quantity.unwrap_or(current.quantity))
     .bind(req.status.unwrap_or(current.status))
     .bind(req.description.or(current.description))
     .fetch_one(&state.db)
@@ -116,7 +118,7 @@ pub async fn create_borrow(
     activity_service::ensure_activity_read_access(state, auth, req.activity_id).await?;
 
     let device = sqlx::query_as::<_, Device>(
-        "SELECT id,name,category,serial_no,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
+        "SELECT id,name,category,serial_no,location,quantity,status,description,is_deleted,created_at,updated_at FROM devices WHERE id=$1 AND is_deleted=FALSE",
     )
     .bind(req.device_id)
     .fetch_optional(&state.db)
@@ -138,15 +140,16 @@ pub async fn create_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        r#"INSERT INTO device_borrows (id,activity_id,device_id,borrower_id,expected_return_time,status,remark)
-           VALUES ($1,$2,$3,$4,$5,'pending',$6)
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+        r#"INSERT INTO device_borrows (id,activity_id,device_id,borrower_id,quantity,start_time,expected_return_time,purpose,status,remark) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending',$9) RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(Uuid::new_v4())
     .bind(req.activity_id)
     .bind(req.device_id)
     .bind(auth.0.id)
+    .bind(req.quantity.unwrap_or(1))
+    .bind(req.start_time)
     .bind(req.expected_return_time)
+    .bind(req.purpose)
     .bind(req.remark)
     .fetch_one(&mut *tx)
     .await?;
@@ -180,13 +183,13 @@ pub async fn list_borrows(
 ) -> Result<Vec<DeviceBorrowResponse>, AppError> {
     let rows = if auth.0.role == "admin" {
         sqlx::query_as::<_, DeviceBorrow>(
-            "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows ORDER BY created_at DESC",
+            "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows ORDER BY created_at DESC",
         )
         .fetch_all(&state.db)
         .await?
     } else {
         sqlx::query_as::<_, DeviceBorrow>(
-            "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE borrower_id=$1 ORDER BY created_at DESC",
+            "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE borrower_id=$1 ORDER BY created_at DESC",
         )
         .bind(auth.0.id)
         .fetch_all(&state.db)
@@ -202,7 +205,7 @@ pub async fn get_borrow(
     borrow_id: Uuid,
 ) -> Result<DeviceBorrowResponse, AppError> {
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&state.db)
@@ -226,7 +229,7 @@ pub async fn approve_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&mut *tx)
@@ -241,7 +244,7 @@ pub async fn approve_borrow(
 
     let updated = sqlx::query_as::<_, DeviceBorrow>(
         r#"UPDATE device_borrows SET status='approved', approver_id=$2 WHERE id=$1
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(borrow_id)
     .bind(auth.0.id)
@@ -277,7 +280,7 @@ pub async fn reject_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&mut *tx)
@@ -292,7 +295,7 @@ pub async fn reject_borrow(
 
     let updated = sqlx::query_as::<_, DeviceBorrow>(
         r#"UPDATE device_borrows SET status='rejected', approver_id=$2, remark=COALESCE($3,remark) WHERE id=$1
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(borrow_id)
     .bind(auth.0.id)
@@ -333,7 +336,7 @@ pub async fn checkout_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&mut *tx)
@@ -348,7 +351,7 @@ pub async fn checkout_borrow(
 
     let updated = sqlx::query_as::<_, DeviceBorrow>(
         r#"UPDATE device_borrows SET status='borrowed', borrow_time=$2 WHERE id=$1
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(borrow_id)
     .bind(Utc::now())
@@ -388,7 +391,7 @@ pub async fn return_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&mut *tx)
@@ -403,7 +406,7 @@ pub async fn return_borrow(
 
     let updated = sqlx::query_as::<_, DeviceBorrow>(
         r#"UPDATE device_borrows SET status='returned', actual_return_time=$2 WHERE id=$1
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(borrow_id)
     .bind(Utc::now())
@@ -442,7 +445,7 @@ pub async fn cancel_borrow(
     let mut tx = state.db.begin().await?;
 
     let borrow = sqlx::query_as::<_, DeviceBorrow>(
-        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
+        "SELECT id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at FROM device_borrows WHERE id=$1",
     )
     .bind(borrow_id)
     .fetch_optional(&mut *tx)
@@ -461,7 +464,7 @@ pub async fn cancel_borrow(
 
     let updated = sqlx::query_as::<_, DeviceBorrow>(
         r#"UPDATE device_borrows SET status='cancelled', remark=COALESCE($2,remark) WHERE id=$1
-           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,expected_return_time,actual_return_time,status,remark,created_at,updated_at"#,
+           RETURNING id,activity_id,device_id,borrower_id,approver_id,borrow_time,start_time,expected_return_time,actual_return_time,quantity,purpose,status,remark,created_at,updated_at"#,
     )
     .bind(borrow_id)
     .bind(req.remark)
