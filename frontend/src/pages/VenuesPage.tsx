@@ -14,6 +14,19 @@ type Venue = {
 };
 
 export default function VenuesPage() {
+  const commonLocations = [
+    "创新港-泓理楼A区1层",
+    "创新港-泓理楼A区2层",
+    "创新港-涵英楼报告厅",
+    "兴庆校区-主楼B座101",
+    "兴庆校区-图书馆一层研讨室",
+    "雁塔校区-教学楼3号楼201",
+    "雁塔校区-体育馆多功能厅",
+    "曲江校区-工程训练中心",
+    "钱学森书院活动中心",
+    "仲英书院共享讨论区",
+  ];
+
   const [venues, setVenues] = useState<Venue[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -144,7 +157,18 @@ export default function VenuesPage() {
             <option>体育场地</option>
           </select>
           <input type="number" min={1} value={venueForm.capacity} onChange={(e) => setVenueForm({ ...venueForm, capacity: Number(e.target.value) })} placeholder="容纳人数" />
-          <input value={venueForm.location} onChange={(e) => setVenueForm({ ...venueForm, location: e.target.value })} placeholder="位置" required />
+          <input
+            value={venueForm.location}
+            onChange={(e) => setVenueForm({ ...venueForm, location: e.target.value })}
+            placeholder="位置（可选择常用地点或手动输入）"
+            list="common-location-options"
+            required
+          />
+          <datalist id="common-location-options">
+            {commonLocations.map((loc) => (
+              <option key={loc} value={loc} />
+            ))}
+          </datalist>
           <input value={venueForm.note} onChange={(e) => setVenueForm({ ...venueForm, note: e.target.value })} placeholder="说明" />
           <select value={venueForm.status} onChange={(e) => setVenueForm({ ...venueForm, status: e.target.value })}>
             <option value="available">可预约</option>
@@ -170,7 +194,7 @@ export default function VenuesPage() {
           <select value={bookingForm.venue_id} onChange={(e) => setBookingForm({ ...bookingForm, venue_id: e.target.value })} required>
             {venueOptions.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}（{v.location || "未填写位置"}）
+                {v.name}（{v.location || "未填写位置"} / {v.venue_type || "其他"}）
               </option>
             ))}
           </select>
