@@ -8,8 +8,10 @@ use crate::models::user::User;
 pub struct UserResponse {
     pub id: Uuid,
     pub username: String,
+    pub email: Option<String>,
     pub role: String,
     pub college: Option<String>,
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -18,8 +20,10 @@ impl From<User> for UserResponse {
         Self {
             id: value.id,
             username: value.username,
+            email: value.email,
             role: value.role,
             college: value.college,
+            is_active: value.is_active,
             created_at: value.created_at,
         }
     }

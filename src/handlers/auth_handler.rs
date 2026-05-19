@@ -18,6 +18,7 @@ pub async fn register(
     let user = auth_service::register(
         &state,
         &payload.username,
+        payload.email.as_deref(),
         &payload.password,
         payload.college,
     )

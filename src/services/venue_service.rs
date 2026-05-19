@@ -27,7 +27,7 @@ pub async fn create_venue(
     auth: &AuthUser,
     req: CreateVenueRequest,
 ) -> Result<VenueResponse, AppError> {
-    operation_log_service::ensure_admin(&auth.0.role)?;
+    operation_log_service::ensure_teacher_or_admin(&auth.0.role)?;
 
     let venue = sqlx::query_as::<_, Venue>(
         r#"INSERT INTO venues (id,name,venue_type,location,capacity,note,status)
@@ -52,7 +52,7 @@ pub async fn update_venue(
     venue_id: Uuid,
     req: UpdateVenueRequest,
 ) -> Result<VenueResponse, AppError> {
-    operation_log_service::ensure_admin(&auth.0.role)?;
+    operation_log_service::ensure_teacher_or_admin(&auth.0.role)?;
 
     let current = sqlx::query_as::<_, Venue>(
         "SELECT id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at FROM venues WHERE id=$1 AND is_deleted=FALSE",
@@ -227,7 +227,7 @@ pub async fn approve_booking(
     auth: &AuthUser,
     booking_id: Uuid,
 ) -> Result<VenueBookingResponse, AppError> {
-    operation_log_service::ensure_admin(&auth.0.role)?;
+    operation_log_service::ensure_teacher_or_admin(&auth.0.role)?;
 
     let booking = sqlx::query_as::<_, VenueBooking>(
         "SELECT id,activity_id,venue_id,applicant_id,approver_id,start_time,end_time,status,reason,created_at,updated_at FROM venue_bookings WHERE id=$1",
@@ -330,7 +330,7 @@ pub async fn reject_booking(
     booking_id: Uuid,
     req: ActionReasonRequest,
 ) -> Result<VenueBookingResponse, AppError> {
-    operation_log_service::ensure_admin(&auth.0.role)?;
+    operation_log_service::ensure_teacher_or_admin(&auth.0.role)?;
 
     let updated = sqlx::query_as::<_, VenueBooking>(
         r#"UPDATE venue_bookings SET status='rejected', approver_id=$2, reason=COALESCE($3, reason)

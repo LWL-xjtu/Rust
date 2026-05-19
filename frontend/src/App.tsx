@@ -11,6 +11,7 @@ import DevicesPage from "./pages/DevicesPage";
 import TasksPage from "./pages/TasksPage";
 import LogsPage from "./pages/LogsPage";
 import StatsPage from "./pages/StatsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/logs" element={<LogsPage />} />
                   <Route path="/stats" element={<StatsPage />} />
+                  <Route path="/admin/users" element={<AdminUsersPage />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </Layout>

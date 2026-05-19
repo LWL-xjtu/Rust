@@ -12,6 +12,7 @@ use crate::{
 pub async fn register(
     state: &AppState,
     username: &str,
+    email: Option<&str>,
     password_raw: &str,
     college: Option<String>,
 ) -> Result<UserResponse, AppError> {
@@ -28,13 +29,14 @@ pub async fn register(
 
     let user = sqlx::query_as::<_, User>(
         r#"
-        INSERT INTO users (id, username, password_hash, role, college)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, username, password_hash, role, college, created_at, updated_at
+        INSERT INTO users (id, username, email, password_hash, role, college, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+        RETURNING id, username, email, password_hash, role, college, is_active, created_at, updated_at
         "#,
     )
     .bind(user_id)
     .bind(username)
+    .bind(email.map(|v| v.trim().to_string()).filter(|v| !v.is_empty()))
     .bind(hashed)
     .bind(role)
     .bind(
@@ -63,6 +65,9 @@ pub async fn login(
     if !pass_ok {
         return Err(AppError::InvalidCredentials);
     }
+    if !user.is_active {
+        return Err(AppError::Forbidden);
+    }
 
     let token = issue_jwt(&user, &state.jwt)?;
 
@@ -78,7 +83,7 @@ pub async fn find_user_by_username(
 ) -> Result<Option<User>, AppError> {
     let user = sqlx::query_as::<_, User>(
         r#"
-        SELECT id, username, password_hash, role, college, created_at, updated_at
+        SELECT id, username, email, password_hash, role, college, is_active, created_at, updated_at
         FROM users
         WHERE username = $1
         "#,

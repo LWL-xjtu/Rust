@@ -10,6 +10,7 @@ export default function Sidebar() {
       <NavLink to="/tasks">任务分工</NavLink>
       <NavLink to="/logs">操作日志</NavLink>
       <NavLink to="/stats">数据统计</NavLink>
+      <NavLink to="/admin/users">用户与权限管理</NavLink>
     </aside>
   );
 }

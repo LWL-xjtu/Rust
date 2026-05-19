@@ -45,6 +45,14 @@ pub fn ensure_admin(role: &str) -> Result<(), AppError> {
     }
 }
 
+pub fn ensure_teacher_or_admin(role: &str) -> Result<(), AppError> {
+    if role == "admin" || role == "teacher" {
+        Ok(())
+    } else {
+        Err(AppError::Forbidden)
+    }
+}
+
 pub async fn list_logs(
     state: &AppState,
     auth: &AuthUser,
