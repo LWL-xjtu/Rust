@@ -28,6 +28,28 @@ pub async fn create_venue(
     req: CreateVenueRequest,
 ) -> Result<VenueResponse, AppError> {
     operation_log_service::ensure_teacher_or_admin(&auth.0.role)?;
+    let normalized_name = req.name.trim();
+    let normalized_location = req.location.trim();
+    if normalized_name.is_empty() || normalized_location.is_empty() {
+        return Err(AppError::Validation("场地名称和位置不能为空".to_string()));
+    }
+
+    let duplicate_count: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(1)
+           FROM venues
+           WHERE is_deleted=FALSE
+             AND lower(trim(name)) = lower(trim($1))
+             AND lower(trim(location)) = lower(trim($2))"#,
+    )
+    .bind(normalized_name)
+    .bind(normalized_location)
+    .fetch_one(&state.db)
+    .await?;
+    if duplicate_count > 0 {
+        return Err(AppError::Conflict(
+            "已存在同名且同位置的场地，请勿重复新增".to_string(),
+        ));
+    }
 
     let venue = sqlx::query_as::<_, Venue>(
         r#"INSERT INTO venues (id,name,venue_type,location,capacity,note,status)
@@ -35,9 +57,9 @@ pub async fn create_venue(
            RETURNING id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at"#,
     )
     .bind(Uuid::new_v4())
-    .bind(req.name)
+    .bind(normalized_name)
     .bind(req.venue_type.unwrap_or_else(|| "other".to_string()))
-    .bind(req.location)
+    .bind(normalized_location)
     .bind(req.capacity)
     .bind(req.note)
     .bind(req.status.unwrap_or_else(|| "available".to_string()))
@@ -62,15 +84,36 @@ pub async fn update_venue(
     .await?
     .ok_or_else(|| AppError::NotFound("venue not found".to_string()))?;
 
+    let next_name = req.name.unwrap_or(current.name);
+    let next_location = req.location.unwrap_or(current.location);
+    let duplicate_count: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(1)
+           FROM venues
+           WHERE is_deleted=FALSE
+             AND id <> $1
+             AND lower(trim(name)) = lower(trim($2))
+             AND lower(trim(location)) = lower(trim($3))"#,
+    )
+    .bind(venue_id)
+    .bind(next_name.trim())
+    .bind(next_location.trim())
+    .fetch_one(&state.db)
+    .await?;
+    if duplicate_count > 0 {
+        return Err(AppError::Conflict(
+            "已存在同名且同位置的场地，请修改后再保存".to_string(),
+        ));
+    }
+
     let updated = sqlx::query_as::<_, Venue>(
         r#"UPDATE venues SET name=$2,venue_type=$3,location=$4,capacity=$5,note=$6,status=$7
            WHERE id=$1
            RETURNING id,name,venue_type,location,capacity,note,status,is_deleted,created_at,updated_at"#,
     )
     .bind(venue_id)
-    .bind(req.name.unwrap_or(current.name))
+    .bind(next_name.trim().to_string())
     .bind(req.venue_type.unwrap_or(current.venue_type))
-    .bind(req.location.unwrap_or(current.location))
+    .bind(next_location.trim().to_string())
     .bind(req.capacity.unwrap_or(current.capacity))
     .bind(req.note.or(current.note))
     .bind(req.status.unwrap_or(current.status))
