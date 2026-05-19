@@ -33,6 +33,10 @@ async fn main() {
         .await
         .expect("failed to run migrations");
 
+    services::bootstrap_service::ensure_default_admin(&pool, &config.admin)
+        .await
+        .expect("failed to initialize default admin");
+
     let app_state = AppState::new(pool, config.jwt.clone());
     let app = routes::create_router(config.cors.frontend_origin.clone()).with_state(app_state);
     let addr = SocketAddr::new(

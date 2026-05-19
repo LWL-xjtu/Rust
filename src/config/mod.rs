@@ -8,6 +8,7 @@ pub struct AppConfig {
     pub database: DatabaseSection,
     pub jwt: JwtSection,
     pub cors: CorsSection,
+    pub admin: AdminSection,
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +34,13 @@ pub struct CorsSection {
     pub frontend_origin: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AdminSection {
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub password: Option<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("missing env var: {0}")]
@@ -54,6 +62,18 @@ impl AppConfig {
         let frontend_origin = env::var("FRONTEND_ORIGIN")
             .ok()
             .filter(|v| !v.trim().is_empty());
+        let admin_username = env::var("ADMIN_USERNAME")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+        let admin_email = env::var("ADMIN_EMAIL")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+        let admin_password = env::var("ADMIN_PASSWORD")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
 
         Ok(Self {
             app: AppSection { host, port },
@@ -66,6 +86,11 @@ impl AppConfig {
                 expires_in_hours,
             },
             cors: CorsSection { frontend_origin },
+            admin: AdminSection {
+                username: admin_username,
+                email: admin_email,
+                password: admin_password,
+            },
         })
     }
 }

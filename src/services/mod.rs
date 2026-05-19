@@ -1,5 +1,6 @@
 pub mod activity_service;
 pub mod auth_service;
+pub mod bootstrap_service;
 pub mod device_service;
 pub mod operation_log_service;
 pub mod stats_service;
