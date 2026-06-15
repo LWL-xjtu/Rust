@@ -1,6 +1,8 @@
-﻿import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -19,6 +21,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
         <Route
           path="/*"
           element={
@@ -34,6 +37,7 @@ export default function App() {
                   <Route path="/logs" element={<LogsPage />} />
                   <Route path="/stats" element={<StatsPage />} />
                   <Route path="/admin/users" element={<AdminUsersPage />} />
+
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </Layout>
