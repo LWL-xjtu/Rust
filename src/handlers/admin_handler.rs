@@ -24,6 +24,17 @@ fn ensure_admin(auth: &AuthUser) -> Result<(), AppError> {
     }
 }
 
+/// 查询所有用户（管理员）
+#[utoipa::path(
+    get,
+    path = "/api/admin/users",
+    tag = "管理员",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "用户列表", body = ApiResponse<Vec<UserResponse>>),
+        (status = 403, description = "非管理员", body = ApiResponseEmpty)
+    )
+)]
 pub async fn list_users(
     State(state): State<AppState>,
     auth: AuthUser,
@@ -37,6 +48,19 @@ pub async fn list_users(
     Ok(Json(ApiResponse::success(users)))
 }
 
+/// 修改用户角色（管理员）
+#[utoipa::path(
+    put,
+    path = "/api/admin/users/{id}/role",
+    tag = "管理员",
+    security(("bearer_auth" = [])),
+    params(("id" = Uuid, Path, description = "用户 ID")),
+    request_body = UpdateUserRoleRequest,
+    responses(
+        (status = 200, description = "已更新", body = ApiResponse<UserResponse>),
+        (status = 403, description = "非管理员", body = ApiResponseEmpty)
+    )
+)]
 pub async fn update_user_role(
     State(state): State<AppState>,
     auth: AuthUser,
@@ -72,6 +96,19 @@ pub async fn update_user_role(
     Ok(Json(ApiResponse::success(UserResponse::from(user))))
 }
 
+/// 启用/禁用用户（管理员）
+#[utoipa::path(
+    put,
+    path = "/api/admin/users/{id}/status",
+    tag = "管理员",
+    security(("bearer_auth" = [])),
+    params(("id" = Uuid, Path, description = "用户 ID")),
+    request_body = UpdateUserStatusRequest,
+    responses(
+        (status = 200, description = "已更新", body = ApiResponse<UserResponse>),
+        (status = 403, description = "非管理员", body = ApiResponseEmpty)
+    )
+)]
 pub async fn update_user_status(
     State(state): State<AppState>,
     auth: AuthUser,
@@ -111,6 +148,19 @@ pub async fn update_user_status(
     Ok(Json(ApiResponse::success(UserResponse::from(user))))
 }
 
+/// 修改用户所属书院/学院（管理员）
+#[utoipa::path(
+    put,
+    path = "/api/admin/users/{id}/college",
+    tag = "管理员",
+    security(("bearer_auth" = [])),
+    params(("id" = Uuid, Path, description = "用户 ID")),
+    request_body = UpdateUserCollegeRequest,
+    responses(
+        (status = 200, description = "已更新", body = ApiResponse<UserResponse>),
+        (status = 403, description = "非管理员", body = ApiResponseEmpty)
+    )
+)]
 pub async fn update_user_college(
     State(state): State<AppState>,
     auth: AuthUser,

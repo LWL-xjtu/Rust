@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::task::{Task, TaskProgressLog};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateTaskRequest {
     pub activity_id: Uuid,
     pub title: String,
@@ -14,7 +15,7 @@ pub struct CreateTaskRequest {
     pub due_time: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTaskRequest {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -24,18 +25,18 @@ pub struct UpdateTaskRequest {
     pub status: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTaskStatusRequest {
     pub status: String,
     pub comment: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AddTaskProgressLogRequest {
     pub content: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TaskResponse {
     pub id: Uuid,
     pub activity_id: Uuid,
@@ -49,7 +50,7 @@ pub struct TaskResponse {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TaskProgressLogResponse {
     pub id: Uuid,
     pub task_id: Uuid,

@@ -13,6 +13,17 @@
 - 任务进度记录（时间线、状态变更留痕）
 - 操作日志（全局/按活动查询）
 - 统计概览与活动统计
+- **OpenAPI/Swagger 接口文档（utoipa 自动生成）**
+
+## 接口文档（OpenAPI / Swagger UI）
+
+后端使用 `utoipa` 以 code-first 方式从各接口与 DTO 注解自动生成 OpenAPI 3.0 规范，覆盖全部 50+ 接口，含统一响应结构、JWT Bearer 安全方案与按模块分组的 tag。
+
+服务启动后访问：
+- Swagger UI 可视化交互文档：`http://127.0.0.1:8080/swagger-ui`
+- OpenAPI 规范 JSON：`http://127.0.0.1:8080/api-docs/openapi.json`
+
+> 在 Swagger UI 右上角 `Authorize` 中填入登录接口返回的 JWT 令牌，即可直接调试受保护接口。
 
 ## 本次新增与完善（Week 5-7 强化）
 - 成员管理权限收敛：活动负责人/教师/管理员可管理成员

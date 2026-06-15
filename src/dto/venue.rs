@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::venue::{Venue, VenueBooking};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateVenueRequest {
     pub name: String,
     pub venue_type: Option<String>,
@@ -14,7 +15,7 @@ pub struct CreateVenueRequest {
     pub status: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateVenueRequest {
     pub name: Option<String>,
     pub venue_type: Option<String>,
@@ -24,7 +25,7 @@ pub struct UpdateVenueRequest {
     pub status: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateVenueBookingRequest {
     pub activity_id: Uuid,
     pub venue_id: Uuid,
@@ -33,12 +34,12 @@ pub struct CreateVenueBookingRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ActionReasonRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct VenueResponse {
     pub id: Uuid,
     pub name: String,
@@ -49,7 +50,7 @@ pub struct VenueResponse {
     pub status: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct VenueBookingResponse {
     pub id: Uuid,
     pub activity_id: Uuid,

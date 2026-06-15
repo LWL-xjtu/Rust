@@ -4,6 +4,7 @@ mod errors;
 mod handlers;
 mod middleware;
 mod models;
+mod openapi;
 mod routes;
 mod services;
 mod state;

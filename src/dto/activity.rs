@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::activity::{Activity, ActivityMember};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateActivityRequest {
     pub title: String,
     pub description: Option<String>,
@@ -14,7 +15,7 @@ pub struct CreateActivityRequest {
     pub end_time: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateActivityRequest {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -25,13 +26,13 @@ pub struct UpdateActivityRequest {
     pub status: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AddActivityMemberRequest {
     pub user_id: Uuid,
     pub member_role: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ActivityResponse {
     pub id: Uuid,
     pub title: String,
@@ -46,7 +47,7 @@ pub struct ActivityResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ActivityMemberResponse {
     pub activity_id: Uuid,
     pub user_id: Uuid,

@@ -1,12 +1,22 @@
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+/// 统一响应包装结构。所有接口都以该结构返回，`code` 为 0 表示成功，
+/// 非 0 表示业务错误码（详见错误码说明）。
+#[derive(Debug, Serialize, ToSchema)]
+#[aliases(
+    ApiResponseEmpty = ApiResponse<EmptyData>,
+    ApiResponseString = ApiResponse<String>
+)]
 pub struct ApiResponse<T>
 where
     T: Serialize,
 {
+    /// 业务状态码，0 表示成功
     pub code: i32,
+    /// 提示信息
     pub message: String,
+    /// 业务数据，错误时为 null
     pub data: Option<T>,
 }
 
@@ -32,3 +42,7 @@ impl ApiResponse<()> {
         }
     }
 }
+
+/// 无业务数据返回时的占位类型（例如删除、移除成员等操作）。
+#[derive(Debug, Serialize, ToSchema)]
+pub struct EmptyData {}

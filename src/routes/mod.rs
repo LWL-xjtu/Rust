@@ -2,6 +2,7 @@ pub mod activity_routes;
 pub mod admin_routes;
 pub mod auth_routes;
 pub mod device_routes;
+pub mod docs_routes;
 pub mod health_routes;
 pub mod operation_log_routes;
 pub mod stats_routes;
@@ -38,6 +39,7 @@ pub fn create_router(frontend_origin: Option<String>) -> Router<AppState> {
 
     Router::new()
         .merge(health_routes::router())
+        .merge(docs_routes::router())
         .merge(auth_routes::router())
         .merge(admin_routes::router())
         .merge(user_routes::router())

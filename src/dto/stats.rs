@@ -1,6 +1,7 @@
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct OverviewStatsResponse {
     pub activities_count: i64,
     pub venue_bookings_count: i64,
@@ -10,7 +11,7 @@ pub struct OverviewStatsResponse {
     pub users_count: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ActivityStatsResponse {
     pub members_count: i64,
     pub tasks_count: i64,
@@ -20,7 +21,7 @@ pub struct ActivityStatsResponse {
     pub recent_logs: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone, sqlx::FromRow, ToSchema)]
 pub struct UserCollegeStatsResponse {
     pub college: String,
     pub user_count: i64,
@@ -30,7 +31,7 @@ pub struct UserCollegeStatsResponse {
     pub progress_log_count: i64,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, ToSchema)]
 pub struct ActivityCollegeStatsResponse {
     pub college: String,
     pub activity_count: i64,
@@ -41,7 +42,7 @@ pub struct ActivityCollegeStatsResponse {
     pub task_completion_rate: f64,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, ToSchema)]
 pub struct CollegeStatsResponse {
     pub by_activity_college: Vec<ActivityCollegeStatsResponse>,
     pub by_user_college: Vec<UserCollegeStatsResponse>,

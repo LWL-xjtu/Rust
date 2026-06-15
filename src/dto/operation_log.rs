@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::operation_log::OperationLog;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct OperationLogResponse {
     pub id: Uuid,
     pub actor_id: Option<Uuid>,

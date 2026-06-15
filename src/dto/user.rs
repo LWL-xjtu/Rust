@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::user::User;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,
     pub username: String,

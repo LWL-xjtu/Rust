@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::device::{Device, DeviceBorrow};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateDeviceRequest {
     pub name: String,
     pub category: String,
@@ -15,7 +16,7 @@ pub struct CreateDeviceRequest {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateDeviceRequest {
     pub name: Option<String>,
     pub category: Option<String>,
@@ -25,7 +26,7 @@ pub struct UpdateDeviceRequest {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateDeviceBorrowRequest {
     pub activity_id: Uuid,
     pub device_id: Uuid,
@@ -36,12 +37,12 @@ pub struct CreateDeviceBorrowRequest {
     pub remark: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct BorrowActionRequest {
     pub remark: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct DeviceResponse {
     pub id: Uuid,
     pub name: String,
@@ -53,7 +54,7 @@ pub struct DeviceResponse {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct DeviceBorrowResponse {
     pub id: Uuid,
     pub activity_id: Uuid,
