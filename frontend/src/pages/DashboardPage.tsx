@@ -1,56 +1,245 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
 import { authApi } from "../api/auth";
 import { logsApi } from "../api/logs";
 import { statsApi } from "../api/stats";
 import ApiError from "../components/ApiError";
 import Loading from "../components/Loading";
-import { zhRole } from "../utils/display";
+import { zhAction, zhRole } from "../utils/display";
+
+import "../styles/log-tables.css";
+
+type CurrentUser = {
+  id: string;
+  username: string;
+  role: string;
+  college?: string | null;
+};
+
+type Overview = {
+  activities_count?: number;
+  venue_bookings_count?: number;
+  device_borrows_count?: number;
+  tasks_count?: number;
+  tasks_done_count?: number;
+  users_count?: number;
+};
+
+type OperationLog = {
+  id: string;
+  actor_id?: string | null;
+  activity_id?: string | null;
+  target_type?: string;
+  target_id?: string | null;
+  action?: string;
+  summary?: string;
+  metadata?: unknown;
+  created_at?: string;
+};
+
+function formatDate(value?: string) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function shortId(value?: string | null) {
+  if (!value) return "-";
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 8)}...${value.slice(-4)}`;
+}
+
+function targetLabel(value?: string) {
+  const map: Record<string, string> = {
+    activity: "活动",
+    task: "任务",
+    venue: "场地",
+    venue_booking: "场地预约",
+    device: "设备",
+    device_borrow: "设备借用",
+    member: "成员",
+    user: "用户",
+  };
+
+  return map[value || ""] || value || "-";
+}
+
+function actionClassName(action?: string) {
+  if (!action) return "console-action-badge";
+
+  if (["create", "add_member", "apply", "add_progress"].includes(action)) {
+    return "console-action-badge console-action-create";
+  }
+
+  if (["approve", "checkout", "return", "completed"].includes(action)) {
+    return "console-action-badge console-action-success";
+  }
+
+  if (["reject", "delete", "cancel", "remove_member"].includes(action)) {
+    return "console-action-badge console-action-danger";
+  }
+
+  if (["update", "status_update"].includes(action)) {
+    return "console-action-badge console-action-update";
+  }
+
+  return "console-action-badge";
+}
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<any>(null);
-  const [overview, setOverview] = useState<any>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [me, setMe] = useState<CurrentUser | null>(null);
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [logs, setLogs] = useState<OperationLog[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    (async () => {
+    const load = async () => {
       try {
-        const [u, s] = await Promise.all([authApi.me(), statsApi.overview()]);
-        setMe(u);
-        setOverview(s);
+        const [userInfo, statsInfo] = await Promise.all([
+          authApi.me(),
+          statsApi.overview(),
+        ]);
+
+        setMe(userInfo as CurrentUser);
+        setOverview(statsInfo as Overview);
+
         try {
-          setLogs(await logsApi.list());
+          const logList = await logsApi.list();
+          setLogs(logList as OperationLog[]);
         } catch {
           setLogs([]);
         }
-      } catch (e: any) {
-        setError(e.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "仪表盘加载失败");
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    void load();
   }, []);
 
-  if (loading) return <Loading />;
+  if (loading) {
+    return <Loading text="仪表盘加载中..." />;
+  }
+
+  const recentLogs = logs.slice(0, 10);
 
   return (
-    <div>
-      <h2>仪表盘</h2>
-      <ApiError error={error} />
-      <p>
-        当前用户：<b>{me?.username || "-"}</b>（<span className={`status status-${me?.role || "student"}`}>{zhRole(me?.role || "-")}</span>）
-      </p>
-      <div className="cards">
-        <div>活动总数: {overview?.activities_count ?? "-"}</div>
-        <div>场地预约数: {overview?.venue_bookings_count ?? "-"}</div>
-        <div>设备借用数: {overview?.device_borrows_count ?? "-"}</div>
-        <div>任务总数: {overview?.tasks_count ?? "-"}</div>
-        <div>已完成任务: {overview?.tasks_done_count ?? "-"}</div>
-        <div>用户总数: {overview?.users_count ?? "-"}</div>
+    <section className="dashboard-page page-stack">
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">DASHBOARD</p>
+          <h1>仪表盘</h1>
+          <p className="page-description">
+            当前用户：{me?.username || "-"}（{zhRole(me?.role || "-")}）
+          </p>
+        </div>
       </div>
-      <h3>最近操作日志（教师/管理员可见）</h3>
-      <ul>{logs.slice(0, 10).map((l) => <li key={l.id}>{l.created_at} | {l.summary}</li>)}</ul>
-    </div>
+
+      <ApiError error={error} />
+
+      <div className="dashboard-metric-grid">
+        <div className="dashboard-metric-card">
+          <span>活动总数</span>
+          <strong>{overview?.activities_count ?? "-"}</strong>
+          <small>全部校园活动</small>
+        </div>
+
+        <div className="dashboard-metric-card">
+          <span>场地预约数</span>
+          <strong>{overview?.venue_bookings_count ?? "-"}</strong>
+          <small>场地申请与审批</small>
+        </div>
+
+        <div className="dashboard-metric-card">
+          <span>设备借用数</span>
+          <strong>{overview?.device_borrows_count ?? "-"}</strong>
+          <small>设备借用记录</small>
+        </div>
+
+        <div className="dashboard-metric-card">
+          <span>任务总数</span>
+          <strong>{overview?.tasks_count ?? "-"}</strong>
+          <small>活动任务数量</small>
+        </div>
+
+        <div className="dashboard-metric-card">
+          <span>已完成任务</span>
+          <strong>{overview?.tasks_done_count ?? "-"}</strong>
+          <small>完成进度统计</small>
+        </div>
+
+        <div className="dashboard-metric-card">
+          <span>用户总数</span>
+          <strong>{overview?.users_count ?? "-"}</strong>
+          <small>系统成员数量</small>
+        </div>
+      </div>
+
+      <div className="panel console-log-panel">
+        <div className="console-section-header">
+          <div>
+            <h2>最近操作日志</h2>
+            <p>教师 / 管理员可见，按后端操作时间倒序展示。</p>
+          </div>
+
+          <span className="console-table-count">{recentLogs.length} 条</span>
+        </div>
+
+        {recentLogs.length === 0 ? (
+          <div className="console-empty">
+            <div>🧾</div>
+            <strong>暂无最近操作日志</strong>
+            <p>完成活动、任务、场地或设备操作后，这里会显示记录。</p>
+          </div>
+        ) : (
+          <div className="console-table-wrap">
+            <table className="console-table dashboard-log-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>操作</th>
+                  <th>资源类型</th>
+                  <th>目标 ID</th>
+                  <th>摘要</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {recentLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="console-time-cell">
+                      {formatDate(log.created_at)}
+                    </td>
+
+                    <td>
+                      <span className={actionClassName(log.action)}>
+                        {zhAction(log.action)}
+                      </span>
+                    </td>
+
+                    <td>{targetLabel(log.target_type)}</td>
+                    <td className="console-id-cell">{shortId(log.target_id)}</td>
+                    <td className="console-summary-cell">{log.summary || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
