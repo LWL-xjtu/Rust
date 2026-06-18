@@ -17,7 +17,7 @@
       - key: APP_HOST
         value: "0.0.0.0"
       - key: APP_PORT
-        value: "8080"
+        value: "7897"
       - key: DATABASE_MAX_CONNECTIONS
         value: "10"
       - key: FRONTEND_ORIGIN

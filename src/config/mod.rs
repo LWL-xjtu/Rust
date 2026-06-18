@@ -52,7 +52,7 @@ pub enum ConfigError {
 impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         let host = env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-        let port = parse_env_or_default("APP_PORT", 8080_u16)?;
+        let port = parse_env_or_default("APP_PORT", 7897_u16)?;
         let database_url = env::var("DATABASE_URL")
             .map_err(|_| ConfigError::MissingVar("DATABASE_URL".to_string()))?;
         let max_connections = parse_env_or_default("DATABASE_MAX_CONNECTIONS", 10_u32)?;

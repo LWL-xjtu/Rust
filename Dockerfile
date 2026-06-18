@@ -24,8 +24,8 @@ COPY --from=builder /app/target/release/campus-collab-backend /app/campus-collab
 COPY --from=builder /app/migrations /app/migrations
 
 ENV APP_HOST=0.0.0.0
-ENV APP_PORT=10000
+ENV APP_PORT=7897
 
-EXPOSE 10000
+EXPOSE 7897
 
 CMD ["/app/campus-collab-backend"]
