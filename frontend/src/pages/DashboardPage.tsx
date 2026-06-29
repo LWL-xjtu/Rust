@@ -6,9 +6,19 @@ import { statsApi } from "../api/stats";
 import type { User } from "../api/types";
 import ApiError from "../components/ApiError";
 import Loading from "../components/Loading";
-import { zhAction, zhRole } from "../utils/display";
+import {
+  EmptyState,
+  PageHeader,
+  ProgressRing,
+  ResourceCard,
+  StatCard,
+  StatusChip,
+  Timeline,
+  type StatusTone,
+  type VisualTone,
+} from "../components/ui";
 
-import "../styles/log-tables.css";
+import "../styles/dashboard.css";
 
 type Overview = {
   activities_count?: number;
@@ -29,6 +39,15 @@ type OperationLog = {
   summary?: string;
   metadata?: unknown;
   created_at?: string;
+};
+
+type MetricConfig = {
+  key: keyof Overview;
+  label: string;
+  description: string;
+  icon: string;
+  tone: VisualTone;
+  adminOnly?: boolean;
 };
 
 function isPrivilegedRole(role?: string) {
@@ -72,27 +91,151 @@ function targetLabel(value?: string) {
   return map[value || ""] || value || "-";
 }
 
-function actionClassName(action?: string) {
-  if (!action) return "console-action-badge";
+function actionLabel(action?: string) {
+  const map: Record<string, string> = {
+    create: "创建",
+    update: "修改",
+    delete: "删除",
+    add_member: "添加成员",
+    remove_member: "移除成员",
+    status_update: "更新状态",
+    add_progress: "添加进度",
+    approve: "通过",
+    reject: "拒绝",
+    cancel: "取消",
+    apply: "发起申请",
+    checkout: "确认借出",
+    return: "确认归还",
+    completed: "完成",
+  };
+
+  return map[action || ""] || action || "-";
+}
+
+function roleLabel(role?: string) {
+  const map: Record<string, string> = {
+    student: "学生",
+    teacher: "教师",
+    admin: "管理员",
+  };
+
+  return map[role || ""] || role || "-";
+}
+
+function actionTone(action?: string): StatusTone {
+  if (!action) return "neutral";
 
   if (["create", "add_member", "apply", "add_progress"].includes(action)) {
-    return "console-action-badge console-action-create";
+    return "info";
   }
 
   if (["approve", "checkout", "return", "completed"].includes(action)) {
-    return "console-action-badge console-action-success";
+    return "success";
   }
 
   if (["reject", "delete", "cancel", "remove_member"].includes(action)) {
-    return "console-action-badge console-action-danger";
+    return "danger";
   }
 
   if (["update", "status_update"].includes(action)) {
-    return "console-action-badge console-action-update";
+    return "warning";
   }
 
-  return "console-action-badge";
+  return "neutral";
 }
+
+function roleTone(role?: string): StatusTone {
+  if (role === "admin") return "admin";
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  return "neutral";
+}
+
+function percent(done?: number, total?: number) {
+  if (!total || total <= 0) return 0;
+  return Math.round(((done || 0) / total) * 100);
+}
+
+function displayNumber(value?: number) {
+  return typeof value === "number" ? value.toLocaleString("zh-CN") : "-";
+}
+
+const adminMetricCards: MetricConfig[] = [
+  {
+    key: "activities_count",
+    label: "活动总数",
+    description: "全部校园活动",
+    icon: "A",
+    tone: "cyan",
+  },
+  {
+    key: "venue_bookings_count",
+    label: "场地预约",
+    description: "场地申请与审批",
+    icon: "V",
+    tone: "blue",
+  },
+  {
+    key: "device_borrows_count",
+    label: "设备借用",
+    description: "设备借用记录",
+    icon: "D",
+    tone: "violet",
+  },
+  {
+    key: "tasks_count",
+    label: "任务总数",
+    description: "活动任务数量",
+    icon: "T",
+    tone: "amber",
+  },
+  {
+    key: "tasks_done_count",
+    label: "已完成任务",
+    description: "完成进度统计",
+    icon: "OK",
+    tone: "green",
+  },
+  {
+    key: "users_count",
+    label: "用户总数",
+    description: "系统成员数量",
+    icon: "U",
+    tone: "rose",
+    adminOnly: true,
+  },
+];
+
+const studentResources = [
+  {
+    title: "活动",
+    description: "查看和参与校园活动",
+    meta: "Activities",
+    icon: "A",
+    tone: "cyan" as VisualTone,
+  },
+  {
+    title: "场地",
+    description: "查看和申请场地预约",
+    meta: "Venues",
+    icon: "V",
+    tone: "blue" as VisualTone,
+  },
+  {
+    title: "设备",
+    description: "查看和申请设备借用",
+    meta: "Devices",
+    icon: "D",
+    tone: "violet" as VisualTone,
+  },
+  {
+    title: "任务",
+    description: "查看和处理分配任务",
+    meta: "Tasks",
+    icon: "T",
+    tone: "green" as VisualTone,
+  },
+];
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -106,6 +249,27 @@ export default function DashboardPage() {
   const recentLogs = useMemo(() => {
     return logs.slice(0, 10);
   }, [logs]);
+
+  const taskCompletion = percent(
+    overview?.tasks_done_count,
+    overview?.tasks_count,
+  );
+
+  const timelineItems = useMemo(() => {
+    return recentLogs.map((log) => ({
+      id: log.id,
+      title: log.summary || "操作记录",
+      description: `${targetLabel(log.target_type)} / ${shortId(log.target_id)}`,
+      time: formatDate(log.created_at),
+      tone: actionTone(log.action),
+      badge: actionLabel(log.action),
+      meta: (
+        <span className="dashboard-timeline-meta">
+          {targetLabel(log.target_type)}
+        </span>
+      ),
+    }));
+  }, [recentLogs]);
 
   useEffect(() => {
     const load = async () => {
@@ -152,143 +316,138 @@ export default function DashboardPage() {
 
   return (
     <section className="dashboard-page page-stack">
-      <div className="page-header">
-        <div>
-          <p className="page-eyebrow">DASHBOARD</p>
-          <h1>仪表盘</h1>
-          <p className="page-description">
-            当前用户：{me?.username || "-"}（{zhRole(me?.role || "-")}）
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Dashboard"
+        title="仪表盘"
+        description={`当前用户：${me?.username || "-"}，角色：${roleLabel(me?.role)}。`}
+        meta={<StatusChip tone={roleTone(me?.role)}>{roleLabel(me?.role)}</StatusChip>}
+      />
 
       <ApiError error={error} />
 
       {canViewAdminInfo ? (
-        <div className="dashboard-metric-grid">
-          <div className="dashboard-metric-card">
-            <span>活动总数</span>
-            <strong>{overview?.activities_count ?? "-"}</strong>
-            <small>全部校园活动</small>
-          </div>
+        <>
+          <div className="dashboard-hero">
+            <div className="dashboard-hero-main">
+              <div className="dashboard-hero-copy">
+                <div>
+                  <p className="dashboard-hero-kicker">Campus Operations</p>
+                  <h2 className="dashboard-hero-title">
+                    活动、资源与任务运行概览
+                  </h2>
+                  <p className="dashboard-hero-description">
+                    汇总活动、场地、设备和任务数据，帮助教师与管理员快速判断当前运营状态。
+                  </p>
+                </div>
 
-          <div className="dashboard-metric-card">
-            <span>场地预约数</span>
-            <strong>{overview?.venue_bookings_count ?? "-"}</strong>
-            <small>场地申请与审批</small>
-          </div>
+                <div className="dashboard-hero-facts">
+                  <div className="dashboard-hero-fact">
+                    <span>活动</span>
+                    <strong>{displayNumber(overview?.activities_count)}</strong>
+                  </div>
+                  <div className="dashboard-hero-fact">
+                    <span>任务完成率</span>
+                    <strong>{taskCompletion}%</strong>
+                  </div>
+                  <div className="dashboard-hero-fact">
+                    <span>最近日志</span>
+                    <strong>{recentLogs.length}</strong>
+                  </div>
+                </div>
+              </div>
 
-          <div className="dashboard-metric-card">
-            <span>设备借用数</span>
-            <strong>{overview?.device_borrows_count ?? "-"}</strong>
-            <small>设备借用记录</small>
-          </div>
-
-          <div className="dashboard-metric-card">
-            <span>任务总数</span>
-            <strong>{overview?.tasks_count ?? "-"}</strong>
-            <small>活动任务数量</small>
-          </div>
-
-          <div className="dashboard-metric-card">
-            <span>已完成任务</span>
-            <strong>{overview?.tasks_done_count ?? "-"}</strong>
-            <small>完成进度统计</small>
-          </div>
-
-          {me?.role === "admin" ? (
-            <div className="dashboard-metric-card">
-              <span>用户总数</span>
-              <strong>{overview?.users_count ?? "-"}</strong>
-              <small>系统成员数量</small>
+              <div className="dashboard-hero-map" aria-hidden="true">
+                <span className="dashboard-hero-line" />
+              </div>
             </div>
-          ) : null}
-        </div>
+
+            <div className="dashboard-hero-progress">
+              <ProgressRing
+                value={overview?.tasks_done_count || 0}
+                max={overview?.tasks_count || 0}
+                label={`${taskCompletion}%`}
+                caption="任务完成"
+                tone={taskCompletion >= 75 ? "green" : "amber"}
+                size={142}
+              />
+              <div className="dashboard-progress-copy">
+                <h2>任务进度</h2>
+                <p>
+                  已完成 {displayNumber(overview?.tasks_done_count)} / 总计{" "}
+                  {displayNumber(overview?.tasks_count)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="dashboard-section-title">
+              <div>
+                <h2>关键指标</h2>
+                <p>来自统计接口的实时汇总数据</p>
+              </div>
+            </div>
+
+            <div className="dashboard-metric-grid">
+              {adminMetricCards
+                .filter((card) => !card.adminOnly || me?.role === "admin")
+                .map((card) => (
+                  <StatCard
+                    key={card.key}
+                    label={card.label}
+                    value={displayNumber(overview?.[card.key])}
+                    description={card.description}
+                    icon={card.icon}
+                    tone={card.tone}
+                  />
+                ))}
+            </div>
+          </div>
+        </>
       ) : (
-        <div className="dashboard-metric-grid">
-          <div className="dashboard-metric-card">
-            <span>我的可用功能</span>
-            <strong>活动</strong>
-            <small>查看和参与校园活动</small>
+        <div>
+          <div className="dashboard-section-title">
+            <div>
+              <h2>可用功能</h2>
+              <p>学生账号可使用的核心流程</p>
+            </div>
           </div>
 
-          <div className="dashboard-metric-card">
-            <span>我的可用功能</span>
-            <strong>场地</strong>
-            <small>查看和申请场地预约</small>
-          </div>
-
-          <div className="dashboard-metric-card">
-            <span>我的可用功能</span>
-            <strong>设备</strong>
-            <small>查看和申请设备借用</small>
-          </div>
-
-          <div className="dashboard-metric-card">
-            <span>我的可用功能</span>
-            <strong>任务</strong>
-            <small>查看和处理分配任务</small>
+          <div className="dashboard-resource-grid">
+            {studentResources.map((resource) => (
+              <ResourceCard
+                key={resource.title}
+                title={resource.title}
+                description={resource.description}
+                meta={resource.meta}
+                icon={resource.icon}
+                tone={resource.tone}
+                footer={<StatusChip tone="student">可访问</StatusChip>}
+              />
+            ))}
           </div>
         </div>
       )}
 
       {canViewAdminInfo ? (
-        <div className="panel console-log-panel">
-          <div className="console-section-header">
+        <div className="dashboard-timeline-panel">
+          <div className="dashboard-section-title">
             <div>
               <h2>最近操作日志</h2>
               <p>仅教师 / 管理员可见，学生账号不会显示该模块。</p>
             </div>
 
-            <span className="console-table-count">{recentLogs.length} 条</span>
+            <StatusChip tone="info">{recentLogs.length} 条</StatusChip>
           </div>
 
           {recentLogs.length === 0 ? (
-            <div className="console-empty">
-              <div>🧾</div>
-              <strong>暂无最近操作日志</strong>
-              <p>完成活动、任务、场地或设备操作后，这里会显示记录。</p>
-            </div>
+            <EmptyState
+              icon="L"
+              title="暂无最近操作日志"
+              description="完成活动、任务、场地或设备操作后，这里会显示记录。"
+            />
           ) : (
-            <div className="console-table-wrap">
-              <table className="console-table dashboard-log-table">
-                <thead>
-                  <tr>
-                    <th>时间</th>
-                    <th>操作</th>
-                    <th>资源类型</th>
-                    <th>目标 ID</th>
-                    <th>摘要</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {recentLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="console-time-cell">
-                        {formatDate(log.created_at)}
-                      </td>
-
-                      <td>
-                        <span className={actionClassName(log.action)}>
-                          {zhAction(log.action)}
-                        </span>
-                      </td>
-
-                      <td>{targetLabel(log.target_type)}</td>
-
-                      <td className="console-id-cell">
-                        {shortId(log.target_id)}
-                      </td>
-
-                      <td className="console-summary-cell">
-                        {log.summary || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Timeline items={timelineItems} />
           )}
         </div>
       ) : null}

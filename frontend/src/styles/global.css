@@ -1,3 +1,5 @@
+@import "./ui.css";
+
 :root {
   --bg: #07111f;
   --bg-deep: #020817;
@@ -16,11 +18,46 @@
   --warning: #fbbf24;
   --danger: #fb7185;
   --info: #38bdf8;
+  --color-primary: #6f87ff;
+  --color-secondary: #39bdf8;
+  --color-accent: #f59e0b;
+  --color-surface: rgba(15, 23, 42, 0.82);
+  --color-surface-strong: rgba(20, 32, 54, 0.94);
+  --color-surface-soft: rgba(148, 163, 184, 0.10);
+  --color-text: #e8f1ff;
+  --color-text-strong: #f8fbff;
+  --color-text-muted: #9fb2d0;
+  --state-info-bg: rgba(56, 189, 248, 0.14);
+  --state-info-border: rgba(56, 189, 248, 0.28);
+  --state-success-bg: rgba(52, 211, 153, 0.14);
+  --state-success-border: rgba(52, 211, 153, 0.26);
+  --state-warning-bg: rgba(251, 191, 36, 0.14);
+  --state-warning-border: rgba(251, 191, 36, 0.26);
+  --state-danger-bg: rgba(251, 113, 133, 0.14);
+  --state-danger-border: rgba(251, 113, 133, 0.26);
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
+  --radius-control: 8px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
   --shadow-soft: 0 16px 40px rgba(2, 8, 23, 0.28);
+  --shadow-card: 0 16px 32px rgba(2, 8, 23, 0.24);
+  --shadow-focus: 0 0 0 4px rgba(111, 135, 255, 0.16);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
 }
 
 * {
