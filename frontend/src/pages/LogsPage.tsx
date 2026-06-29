@@ -1,9 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { activitiesApi } from "../api/activities";
 import { logsApi } from "../api/logs";
 import ApiError from "../components/ApiError";
-import { zhAction } from "../utils/display";
+import {
+  EmptyState,
+  PageHeader,
+  ResourceCard,
+  StatCard,
+  StatusChip,
+  Timeline,
+  type StatusTone,
+} from "../components/ui";
+
+import "../styles/logs.css";
 
 type ActivityOption = {
   id: string;
@@ -54,31 +64,52 @@ function targetLabel(value?: string) {
     device_borrow: "设备借用",
     member: "成员",
     user: "用户",
+    activity_member: "活动成员",
+    task_progress_log: "任务进度",
   };
 
   return map[value || ""] || value || "-";
 }
 
-function actionClassName(action?: string) {
-  if (!action) return "log-action";
+function actionLabel(action?: string) {
+  const map: Record<string, string> = {
+    create: "创建",
+    update: "更新",
+    delete: "删除",
+    add_member: "添加成员",
+    remove_member: "移除成员",
+    status_update: "状态更新",
+    add_progress: "提交进度",
+    approve: "审批通过",
+    reject: "拒绝",
+    cancel: "取消",
+    apply: "发起申请",
+    checkout: "确认借出",
+    return: "确认归还",
+    completed: "完成",
+  };
 
-  if (["create", "add_member", "apply", "add_progress"].includes(action)) {
-    return "log-action log-action-create";
+  return map[action || ""] || action || "-";
+}
+
+function actionTone(action?: string): StatusTone {
+  if (["create", "add_member", "add_progress"].includes(action || "")) {
+    return "info";
   }
 
-  if (["approve", "checkout", "return", "completed"].includes(action)) {
-    return "log-action log-action-success";
+  if (["approve", "checkout", "return", "completed"].includes(action || "")) {
+    return "success";
   }
 
-  if (["reject", "delete", "cancel", "remove_member"].includes(action)) {
-    return "log-action log-action-danger";
+  if (["reject", "delete", "cancel", "remove_member"].includes(action || "")) {
+    return "danger";
   }
 
-  if (["update", "status_update"].includes(action)) {
-    return "log-action log-action-update";
+  if (["update", "status_update", "apply"].includes(action || "")) {
+    return "warning";
   }
 
-  return "log-action";
+  return "neutral";
 }
 
 function formatMetadata(metadata: unknown) {
@@ -94,7 +125,7 @@ function formatMetadata(metadata: unknown) {
     if (entries.length === 0) return "-";
 
     return entries
-      .slice(0, 4)
+      .slice(0, 6)
       .map(([key, value]) => {
         if (value === null || value === undefined || value === "") {
           return `${key}: -`;
@@ -106,7 +137,7 @@ function formatMetadata(metadata: unknown) {
 
         return `${key}: ${String(value)}`;
       })
-      .join(" / ");
+      .join("\n");
   }
 
   return String(metadata);
@@ -143,6 +174,34 @@ export default function LogsPage() {
     return map;
   }, [activities]);
 
+  const actionTypeCount = useMemo(() => {
+    return new Set(logs.map((log) => log.action).filter(Boolean)).size;
+  }, [logs]);
+
+  const involvedActivityCount = useMemo(() => {
+    return new Set(logs.map((log) => log.activity_id).filter(Boolean)).size;
+  }, [logs]);
+
+  const timelineItems = useMemo(() => {
+    return logs.map((log) => ({
+      id: log.id,
+      title: log.summary || actionLabel(log.action),
+      description: [
+        `资源：${targetLabel(log.target_type)}`,
+        `活动：${
+          log.activity_id
+            ? activityMap.get(log.activity_id) || shortId(log.activity_id)
+            : "-"
+        }`,
+        `操作者：${shortId(log.actor_id)}`,
+        `目标：${shortId(log.target_id)}`,
+      ].join(" · "),
+      time: formatDate(log.created_at),
+      tone: actionTone(log.action),
+      badge: actionLabel(log.action),
+    }));
+  }, [activityMap, logs]);
+
   const loadAll = async () => {
     setError("");
     setLoading(true);
@@ -169,9 +228,10 @@ export default function LogsPage() {
 
   useEffect(() => {
     void loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filterByActivity = async (e: React.FormEvent) => {
+  const filterByActivity = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!activityId) {
@@ -194,47 +254,55 @@ export default function LogsPage() {
   };
 
   return (
-    <section className="page-stack">
-      <div className="page-header">
-        <div>
-          <p className="page-eyebrow">USAGE LOGS</p>
-          <h1>操作日志</h1>
-          <p className="page-description">
-            按照 Token 使用日志的形式展示系统后端业务操作记录，便于审计活动、场地、设备和任务流转。
-          </p>
-        </div>
-
-        <button type="button" className="btn-secondary" onClick={loadAll}>
-          刷新日志
-        </button>
-      </div>
+    <section className="logs-page page-stack">
+      <PageHeader
+        eyebrow="Audit Logs"
+        title="操作日志"
+        description="查看系统关键操作记录，辅助审计活动、资源和任务流程。"
+        actions={
+          <button type="button" className="btn-secondary" onClick={loadAll}>
+            刷新日志
+          </button>
+        }
+      />
 
       <ApiError error={error} />
 
-      <div className="metric-grid">
-        <div className="metric-card">
-          <span>日志总数</span>
-          <strong>{totalCount}</strong>
-          <small>{mode === "activity" ? "当前活动筛选结果" : "全部操作记录"}</small>
-        </div>
-
-        <div className="metric-card">
-          <span>最新记录时间</span>
-          <strong>{latestTime}</strong>
-          <small>按后端 created_at 字段统计</small>
-        </div>
-
-        <div className="metric-card">
-          <span>活动数量</span>
-          <strong>{activities.length}</strong>
-          <small>可按活动查看日志明细</small>
-        </div>
+      <div className="logs-metric-grid">
+        <StatCard
+          label="日志总数"
+          value={totalCount.toLocaleString("zh-CN")}
+          description={mode === "activity" ? "当前活动筛选结果" : "全部操作记录"}
+          icon="L"
+          tone="cyan"
+        />
+        <StatCard
+          label="最新记录时间"
+          value={latestTime}
+          description="按 created_at 字段统计"
+          icon="N"
+          tone="blue"
+        />
+        <StatCard
+          label="活动数量"
+          value={activities.length.toLocaleString("zh-CN")}
+          description={`当前日志涉及 ${involvedActivityCount} 个活动`}
+          icon="A"
+          tone="green"
+        />
+        <StatCard
+          label="操作类型"
+          value={actionTypeCount.toLocaleString("zh-CN")}
+          description="基于 action 字段去重"
+          icon="T"
+          tone="amber"
+        />
       </div>
 
-      <div className="panel toolbar-panel">
-        <form className="console-toolbar" onSubmit={filterByActivity}>
-          <div className="toolbar-field">
-            <label htmlFor="activity-filter">活动筛选</label>
+      <section className="logs-filter-panel">
+        <form className="logs-filter-form" onSubmit={filterByActivity}>
+          <label className="logs-field" htmlFor="activity-filter">
+            <span>活动筛选</span>
             <select
               id="activity-filter"
               value={activityId}
@@ -250,73 +318,98 @@ export default function LogsPage() {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
 
-          <div className="toolbar-actions">
+          <div className="logs-filter-actions">
             <button type="submit">按活动筛选</button>
             <button type="button" className="btn-secondary" onClick={loadAll}>
               查看全部
             </button>
           </div>
         </form>
-      </div>
+      </section>
 
-      <div className="panel table-panel">
-        <div className="table-panel-header">
+      <section className="logs-stream-panel">
+        <div className="logs-section-heading">
           <div>
-            <h2>后端操作日志输出</h2>
-            <p>表格字段对齐 Token 使用日志风格：时间、动作、资源、操作者、摘要和详细参数。</p>
+            <h2>审计事件流</h2>
+            <p>按时间倒序展示后端关键业务操作。</p>
           </div>
-
-          <span className="table-count">{logs.length} 条记录</span>
+          <StatusChip tone="info">{logs.length} 条记录</StatusChip>
         </div>
 
         {loading ? (
           <div className="loading">日志加载中...</div>
         ) : logs.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🧾</div>
-            <h3>暂无操作日志</h3>
-            <p>完成活动创建、审批、任务流转等操作后，这里会自动显示记录。</p>
-          </div>
+          <EmptyState
+            icon="L"
+            title="暂无操作日志"
+            description="系统产生操作记录后，会在这里显示审计事件。"
+          />
         ) : (
-          <div className="table-scroll">
-            <table className="table log-table">
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>操作</th>
-                  <th>资源类型</th>
-                  <th>活动</th>
-                  <th>操作者</th>
-                  <th>目标 ID</th>
-                  <th>摘要</th>
-                  <th>详细参数</th>
-                </tr>
-              </thead>
+          <div className="logs-layout">
+            <div className="logs-timeline-wrap">
+              <Timeline items={timelineItems} />
+            </div>
 
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="time-cell">{formatDate(log.created_at)}</td>
-                    <td>
-                      <span className={actionClassName(log.action)}>
-                        {zhAction(log.action)}
-                      </span>
-                    </td>
-                    <td>{targetLabel(log.target_type)}</td>
-                    <td>{log.activity_id ? activityMap.get(log.activity_id) || shortId(log.activity_id) : "-"}</td>
-                    <td>{shortId(log.actor_id)}</td>
-                    <td>{shortId(log.target_id)}</td>
-                    <td className="summary-cell">{log.summary || "-"}</td>
-                    <td className="metadata-cell">{formatMetadata(log.metadata)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="logs-detail-list">
+              {logs.map((log) => (
+                <ResourceCard
+                  key={log.id}
+                  title={actionLabel(log.action)}
+                  description={log.summary || "无摘要"}
+                  icon="L"
+                  tone={
+                    actionTone(log.action) === "danger"
+                      ? "rose"
+                      : actionTone(log.action) === "success"
+                        ? "green"
+                        : actionTone(log.action) === "warning"
+                          ? "amber"
+                          : "cyan"
+                  }
+                  meta={
+                    <div className="logs-chip-row">
+                      <StatusChip tone={actionTone(log.action)}>
+                        {actionLabel(log.action)}
+                      </StatusChip>
+                      <span>{targetLabel(log.target_type)}</span>
+                    </div>
+                  }
+                >
+                  <div className="logs-event-grid">
+                    <div>
+                      <span>时间</span>
+                      <strong>{formatDate(log.created_at)}</strong>
+                    </div>
+                    <div>
+                      <span>活动</span>
+                      <strong>
+                        {log.activity_id
+                          ? activityMap.get(log.activity_id) ||
+                            shortId(log.activity_id)
+                          : "-"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>操作者</span>
+                      <strong>{shortId(log.actor_id)}</strong>
+                    </div>
+                    <div>
+                      <span>目标 ID</span>
+                      <strong>{shortId(log.target_id)}</strong>
+                    </div>
+                  </div>
+
+                  <pre className="logs-metadata-block">
+                    {formatMetadata(log.metadata)}
+                  </pre>
+                </ResourceCard>
+              ))}
+            </div>
           </div>
         )}
-      </div>
+      </section>
     </section>
   );
 }
