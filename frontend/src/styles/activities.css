@@ -1,0 +1,215 @@
+.activities-page {
+  gap: var(--space-6, 24px);
+}
+
+.activities-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.activities-create-panel,
+.activities-list-panel {
+  border: 1px solid var(--line, rgba(148, 163, 184, 0.18));
+  border-radius: var(--radius-panel, 12px);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(8, 18, 35, 0.82));
+  box-shadow: var(--shadow-card, 0 16px 32px rgba(2, 8, 23, 0.24));
+}
+
+.activities-create-panel {
+  padding: var(--space-6, 24px);
+}
+
+.activities-list-panel {
+  padding: var(--space-6, 24px);
+}
+
+.activities-section-heading {
+  margin-bottom: var(--space-5, 20px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.activities-section-heading h2 {
+  margin: 0;
+  color: var(--color-text-strong, #f8fbff);
+  font-size: var(--font-size-xl, 24px);
+  font-weight: 950;
+}
+
+.activities-section-heading p {
+  margin: var(--space-2, 8px) 0 0;
+  color: var(--color-text-muted, #9fb2d0);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.65;
+}
+
+.activities-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+  margin: 0;
+}
+
+.activities-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.activities-field-wide {
+  grid-column: span 2;
+}
+
+.activities-field span {
+  color: rgba(184, 200, 226, 0.72);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 900;
+}
+
+.activities-field input,
+.activities-field select {
+  width: 100%;
+}
+
+.activities-form-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.activities-form-actions button {
+  width: 100%;
+}
+
+.activities-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.activities-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.activities-card-meta > span:not(.ui-status-chip) {
+  color: rgba(184, 200, 226, 0.62);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 850;
+}
+
+.activities-card-details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3, 12px);
+}
+
+.activities-card-details div {
+  min-width: 0;
+  padding: var(--space-3, 12px);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-control, 8px);
+  background: rgba(148, 163, 184, 0.07);
+}
+
+.activities-card-details span {
+  display: block;
+  color: rgba(184, 200, 226, 0.56);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 850;
+}
+
+.activities-card-details strong {
+  display: block;
+  margin-top: 5px;
+  color: rgba(248, 251, 255, 0.92);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 900;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.activities-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2, 8px);
+}
+
+.activities-card-actions button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: var(--radius-control, 8px);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.activities-modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.activities-modal-card h3,
+.activities-modal-card p {
+  margin: 0;
+}
+
+.activities-modal-card p {
+  color: var(--color-text-muted, #9fb2d0);
+  line-height: 1.7;
+}
+
+.activities-edit-summary {
+  padding: var(--space-3, 12px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--radius-control, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(184, 200, 226, 0.78);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 850;
+}
+
+@media (max-width: 1280px) {
+  .activities-metric-grid,
+  .activities-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activities-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .activities-metric-grid,
+  .activities-card-grid,
+  .activities-form {
+    grid-template-columns: 1fr;
+  }
+
+  .activities-field-wide {
+    grid-column: auto;
+  }
+
+  .activities-section-heading {
+    flex-direction: column;
+  }
+
+  .activities-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .activities-edit-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
