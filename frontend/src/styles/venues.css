@@ -1,0 +1,256 @@
+.venues-page {
+  gap: var(--space-6, 24px);
+}
+
+.venues-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.venues-create-panel,
+.venues-list-panel,
+.venues-booking-panel,
+.venues-record-panel {
+  border: 1px solid var(--line, rgba(148, 163, 184, 0.18));
+  border-radius: var(--radius-panel, 12px);
+  padding: var(--space-6, 24px);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(8, 18, 35, 0.82));
+  box-shadow: var(--shadow-card, 0 16px 32px rgba(2, 8, 23, 0.24));
+}
+
+.venues-section-heading {
+  margin-bottom: var(--space-5, 20px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.venues-section-heading h2 {
+  margin: 0;
+  color: var(--color-text-strong, #f8fbff);
+  font-size: var(--font-size-xl, 24px);
+  font-weight: 950;
+}
+
+.venues-section-heading p {
+  margin: var(--space-2, 8px) 0 0;
+  color: var(--color-text-muted, #9fb2d0);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.65;
+}
+
+.venues-form,
+.venues-booking-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+  margin: 0;
+}
+
+.venues-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.venues-field-wide {
+  grid-column: span 2;
+}
+
+.venues-field span {
+  color: rgba(184, 200, 226, 0.72);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 900;
+}
+
+.venues-field input,
+.venues-field select {
+  width: 100%;
+}
+
+.venues-form-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.venues-form-actions button {
+  width: 100%;
+}
+
+.venues-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.venues-chip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.venues-chip-row > span:not(.ui-status-chip) {
+  color: rgba(184, 200, 226, 0.62);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 850;
+}
+
+.venues-card-details,
+.venues-booking-details {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3, 12px);
+}
+
+.venues-card-details div,
+.venues-booking-details div {
+  min-width: 0;
+  padding: var(--space-3, 12px);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-control, 8px);
+  background: rgba(148, 163, 184, 0.07);
+}
+
+.venues-card-details span,
+.venues-booking-details span {
+  display: block;
+  color: rgba(184, 200, 226, 0.56);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 850;
+}
+
+.venues-card-details strong,
+.venues-booking-details strong {
+  display: block;
+  margin-top: 5px;
+  color: rgba(248, 251, 255, 0.92);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 900;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.venues-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2, 8px);
+}
+
+.venues-card-actions button,
+.venues-booking-actions button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: var(--radius-control, 8px);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.venues-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.venues-booking-card {
+  padding: var(--space-5, 20px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--radius-card, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(8, 18, 35, 0.84));
+  box-shadow: var(--shadow-card, 0 16px 32px rgba(2, 8, 23, 0.24));
+}
+
+.venues-booking-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+.venues-booking-card-head h3 {
+  margin: 0;
+  color: var(--color-text-strong, #f8fbff);
+  font-size: var(--font-size-lg, 18px);
+  font-weight: 950;
+}
+
+.venues-booking-card-head p {
+  margin: var(--space-2, 8px) 0 0;
+  color: var(--color-text-muted, #9fb2d0);
+  font-size: var(--font-size-sm, 13px);
+  line-height: 1.5;
+}
+
+.venues-booking-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2, 8px);
+}
+
+.venues-modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.venues-modal-card h3,
+.venues-modal-card p {
+  margin: 0;
+}
+
+.venues-modal-card p {
+  color: var(--color-text-muted, #9fb2d0);
+  line-height: 1.7;
+}
+
+.venues-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+@media (max-width: 1280px) {
+  .venues-metric-grid,
+  .venues-card-grid,
+  .venues-booking-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .venues-form,
+  .venues-booking-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .venues-metric-grid,
+  .venues-card-grid,
+  .venues-booking-grid,
+  .venues-form,
+  .venues-booking-form,
+  .venues-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .venues-field-wide {
+    grid-column: auto;
+  }
+
+  .venues-section-heading,
+  .venues-booking-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .venues-booking-actions,
+  .venues-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
